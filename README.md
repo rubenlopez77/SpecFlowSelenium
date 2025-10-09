@@ -12,17 +12,17 @@
 
 ## Objetivos
 
-Clean Login Steps - Simplifica la escritura de pruebas eprovechando SpecFlow. Permite la escritura de pruebas usando lenguaje natural. 
+Clean Login Steps - Simplifica la escritura de pruebas potenciando SpecFlow. Permite la escritura de pruebas usando lenguaje natural. 
 
 Helpers – Centraliza las interacciones con el navegador para reducir la duplicación de código. Simplifica el mantenimiento y lo hace escalable.
 
 Parallel Execution – Utiliza DriverFactory para lanzar múltiples navegadores en paralelo  y thread-safe.
 
-Logs & Reporting (WIP) – Incluye los nombres de los navegadores en TestContext.WriteLine() para mayor claridad en ejecuciones paralelas. TODO. Mejor escribir en logs.txt
+Logs & Reporting (WIP) – Incluye métricas de ejecución.
 
 Environment Flexibility – .env o variables de CI/CD permiten controlar sin esfuerzo navegadores, entornos y modos.
 
-Tagging Strategy – Flewxibilidad al poder definir el tipo de pruebas al lanzar (Smoke y Regresión) Velocidad vs Cobertura en los pipelines de CI. Las pruebas smoke solo se lanzan en Chrome
+Tagging Strategy – Flexibilidad al poder definir el tipo de pruebas al lanzar (Smoke y Regresión) Velocidad vs Cobertura en los pipelines de CI. Las pruebas Smoke por ejemplo sólo se lanzan en Chrome
 
 ---
 
@@ -31,7 +31,7 @@ Tagging Strategy – Flewxibilidad al poder definir el tipo de pruebas al lanzar (
 - [SpecFlow](https://specflow.org/) (BDD framework for .NET)  
 - [Selenium WebDriver](https://www.selenium.dev/) for browser automation  
 - [NUnit](https://nunit.org/) as the test runner  
-- [.NET 9](https://dotnet.microsoft.com/)  
+- [.NET 8](https://dotnet.microsoft.com/)  
 - Parallel execution using NUnit and custom `DriverFactory`  
 
 ---
