@@ -1,6 +1,7 @@
 ﻿using TechTalk.SpecFlow;
 using SpecFlowSelenium.Pages;
 using static NUnit.Framework.Assert;
+using SpecFlowSelenium.Helpers;
 
 namespace SpecFlowSelenium.Steps
 {
@@ -26,6 +27,8 @@ namespace SpecFlowSelenium.Steps
         /// </summary>
 
         private readonly HomePage _home = new HomePage();
+        private readonly TestConfiguration _config = new();
+
 
         [Given("I am on the login page")]
         public void GivenIAmOnLoginPage()
@@ -36,7 +39,7 @@ namespace SpecFlowSelenium.Steps
         [When("I enter valid credentials")]
         public void WhenIEnterValidCredentials()
         {
-            _home.Login(SetUpFixture.username, SetUpFixture.pass);
+            _home.Login(_config.ValidCredentials.Username, _config.ValidCredentials.Password);
         }
 
         [When("I enter wrong password")]

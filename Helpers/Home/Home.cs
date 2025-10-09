@@ -6,8 +6,13 @@ namespace SpecFlowSelenium.Pages
     public class HomePage
     {
         private IWebDriver Driver => DriverFactory.CurrentDriver;
+   
+        public HomePage() {
 
-        public HomePage() { }
+          
+
+
+        }
 
         /// <summary>
         /// Navega a la pantalla de Login.
