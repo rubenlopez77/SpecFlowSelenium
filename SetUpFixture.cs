@@ -5,17 +5,22 @@ using SpecFlowLogin.Helpers.DebugTools;
 [SetUpFixture]
     public class SetUpFixture
     {
+    public static string username { get; private set; } = "user";
+    public static string pass { get; private set; } = "user";
 
-       
-    public static readonly string username = Environment.GetEnvironmentVariable("USER")!;
-    public static readonly string pass = Environment.GetEnvironmentVariable("PASS")!;
-   
 
 
     [OneTimeSetUp] 
         public void RunBeforeAnyTests()
         {
-        Debug.Log($"Arrancan las pruebas......");
+   
+        try { DotNetEnv.Env.Load(); } catch { Console.WriteLine("ERROR: No se encontró .env"); }
+
+        username = Environment.GetEnvironmentVariable("USER") ?? "user";
+        pass = Environment.GetEnvironmentVariable("PASS") ?? "pass";
+
+
+        Debug.Log($"Arrancan las pruebas... ");
 
     }
 

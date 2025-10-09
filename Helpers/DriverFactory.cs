@@ -32,11 +32,6 @@ namespace SpecFlowSelenium.Helpers
         
         public DriverFactory(ScenarioContext context) => _context = context;
 
-        [BeforeTestRun(Order = 0)]
-        public static void LoadEnv()
-        {
-            try { Env.Load(); } catch { Console.WriteLine("ERROR: No se encontró .env"); }
-        }
 
         [BeforeScenario(Order = 0)]
         public async Task BeforeScenario()
