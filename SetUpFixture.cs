@@ -12,7 +12,15 @@ using SpecFlowLogin.Helpers.DebugTools;
         public void RunBeforeAnyTests()
         {
    
-        try { DotNetEnv.Env.Load(); } catch { Console.WriteLine("ERROR: No se encontró .env"); }
+        try { 
+            DotNetEnv.Env.Load(); 
+            // TODO verificar que si existen todas las variables etc
+        } 
+        catch { 
+            
+            Console.WriteLine("ERROR: No se encontró .env");
+            throw; //FailFast
+        }
 
         Debug.Log($"Arrancan las pruebas... ");
 
