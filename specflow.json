@@ -1,0 +1,12 @@
+{
+    "specFlow": {
+        "runtime": {
+            "executionThreadIsolation": "SameThread",
+            "testThreadIsolation": "Thread",
+            "stopAtFirstError": false
+        },
+        "generator": {
+            "allowDebugGeneratedFiles": true
+        }
+    }
+}
