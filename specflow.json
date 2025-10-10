@@ -1,7 +1,7 @@
 {
     "specFlow": {
         "runtime": {
-            "executionThreadIsolation": "SameThread",
+            "executionThreadIsolation": "Thread",
             "testThreadIsolation": "Thread",
             "stopAtFirstError": false
         },

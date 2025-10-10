@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
 using SpecFlowSelenium.Helpers;
 using SpecFlowSelenium.Pages;
 using TechTalk.SpecFlow;
@@ -11,55 +14,86 @@ namespace SpecFlowSelenium.Steps
     [Binding]
     public class LoginSteps
     {
-        private readonly HomePage _home;
+        private readonly IReadOnlyDictionary<string, HomePage> _homes;
         private readonly TestConfiguration _config;
 
-        public LoginSteps(IWebDriver driver, IWait<IWebDriver> wait, TestConfiguration config)
+        public LoginSteps(IReadOnlyCollection<BrowserSession> sessions, TestConfiguration config)
         {
+            if (sessions == null || sessions.Count == 0)
+            {
+                throw new InvalidOperationException("No se creó ninguna sesión de navegador para el escenario actual.");
+            }
+
             _config = config;
-            _home = new HomePage(driver, wait, config);
+            _homes = sessions.ToDictionary(
+                session => session.Name,
+                session => new HomePage(session.Driver, session.Wait, config)
+            );
         }
 
         [Given("I am on the login page")]
         public void GivenIAmOnLoginPage()
         {
-            _home.Navigate();
+            ExecuteOnAllBrowsers(home => home.Navigate());
         }
 
         [When("I enter valid credentials")]
         public void WhenIEnterValidCredentials()
         {
-            _home.Login(_config.ValidCredentials.Username, _config.ValidCredentials.Password);
+            ExecuteOnAllBrowsers(home => home.Login(_config.ValidCredentials.Username, _config.ValidCredentials.Password));
         }
 
         [When("I enter wrong password")]
         public void WhenIEnterWrongPassword()
         {
-            _home.Login(_config.ValidCredentials.Username, "error");
+            ExecuteOnAllBrowsers(home => home.Login(_config.ValidCredentials.Username, "error"));
         }
 
         [When("I leave credentials empty")]
         public void WhenILeaveCredentialsEmpty()
         {
-            _home.Login(string.Empty, string.Empty);
+            ExecuteOnAllBrowsers(home => home.Login(string.Empty, string.Empty));
         }
 
         [Then("I should see the dashboard")]
         public void ThenIShouldSeeTheDashboard()
         {
-            That(_home.IsDashboardVisible(), Is.True, "Se esperaba el mensaje de éxito tras el login válido.");
+            AssertOnAllBrowsers(home => home.IsDashboardVisible(), "Se esperaba el mensaje de éxito tras el login válido.");
         }
 
         [Then("I should see an error message")]
         public void ThenIShouldSeeAnErrorMessage()
         {
-            That(_home.IsErrorVisible(), Is.True, "Se esperaba un mensaje de error por contraseña inválida.");
+            AssertOnAllBrowsers(home => home.IsErrorVisible(), "Se esperaba un mensaje de error por contraseña inválida.");
         }
 
         [Then("I should see a validation message")]
         public void ThenIShouldSeeAValidationMessage()
         {
-            That(_home.IsValidationVisible(), Is.True, "Se esperaba un mensaje de validación por campos vacíos.");
+            AssertOnAllBrowsers(home => home.IsValidationVisible(), "Se esperaba un mensaje de validación por campos vacíos.");
+        }
+
+        private void ExecuteOnAllBrowsers(Action<HomePage> action)
+        {
+            Parallel.ForEach(_homes.Values, home => action(home));
+        }
+
+        private void AssertOnAllBrowsers(Func<HomePage, bool> assertion, string message)
+        {
+            var failures = new ConcurrentBag<string>();
+
+            Parallel.ForEach(_homes, pair =>
+            {
+                if (!assertion(pair.Value))
+                {
+                    failures.Add(pair.Key);
+                }
+            });
+
+            var failedBrowsers = failures.ToArray();
+            That(failedBrowsers, Is.Empty, failedBrowsers.Length == 0
+                ? string.Empty
+                : $"{message} Navegadores con fallo: {string.Join(", ", failedBrowsers)}");
         }
     }
 }
