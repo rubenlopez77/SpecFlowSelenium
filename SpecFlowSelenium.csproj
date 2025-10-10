@@ -12,6 +12,7 @@
     <Compile Remove="Helpers\DriveGroup.cs" />
     <Compile Remove="Helpers\OrderedDictionaryExtensions.cs" />
     <Compile Remove="Helpers\PageGroup.cs" />
+    <Compile Remove="SetUpFixture.cs" />
   </ItemGroup>
 
   <ItemGroup>

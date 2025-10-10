@@ -26,9 +26,17 @@ namespace SpecFlowSelenium.Steps
         ///   sin exponer la lista de drivers en los Steps.
         /// </summary>
 
-        private readonly HomePage _home = new HomePage();
-        private readonly TestConfiguration _config = new();
+        //  private readonly HomePage _home = new HomePage();
+        //private readonly TestConfiguration _config = new();
 
+        private readonly HomePage _home;
+        private readonly TestConfiguration _config;
+
+        public LoginSteps(DriverContext context, TestConfiguration config)
+        {
+            _home = new HomePage(context);
+            _config = config;
+        }
 
         [Given("I am on the login page")]
         public void GivenIAmOnLoginPage()

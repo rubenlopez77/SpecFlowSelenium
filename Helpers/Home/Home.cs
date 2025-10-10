@@ -1,17 +1,22 @@
 ﻿using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using SpecFlowSelenium.Helpers;
 
 namespace SpecFlowSelenium.Pages
 {
     public class HomePage
     {
-        private IWebDriver Driver => DriverFactory.CurrentDriver;
-   
-        public HomePage() {
+       
 
-          
+        private readonly IWebDriver _driver;
+        private readonly WebDriverWait _wait;
+        private readonly TestConfiguration _config;
 
-
+        public HomePage(DriverContext context)
+        {
+            _driver = context.Driver;
+            _wait = context.Wait;
+            _config = context.Config;
         }
 
         /// <summary>
@@ -20,7 +25,7 @@ namespace SpecFlowSelenium.Pages
         /// <returns></returns>
         public HomePage Navigate()
         {
-            Driver.Navigate().GoToUrl(Environment.GetEnvironmentVariable("BASE_URL") + "/login");
+            _driver.Navigate().GoToUrl(Environment.GetEnvironmentVariable("BASE_URL") + "/login");
             return this;
         }
 
@@ -32,25 +37,25 @@ namespace SpecFlowSelenium.Pages
         /// <returns></returns>
         public HomePage Login(string user, string pass)
         {
-            Driver.FindElement(By.Id("username")).SendKeys(user);
-            Driver.FindElement(By.Id("password")).SendKeys(pass);
-            Driver.FindElement(By.CssSelector("button[type='submit']")).Click();
+            _driver.FindElement(By.Id("username")).SendKeys(user);
+            _driver.FindElement(By.Id("password")).SendKeys(pass);
+            _driver.FindElement(By.CssSelector("button[type='submit']")).Click();
             return this;
         }
 
         public bool IsDashboardVisible()
         {
-            return Driver.FindElement(By.CssSelector(".flash.success")).Displayed;
+            return _driver.FindElement(By.CssSelector(".flash.success")).Displayed;
         }
 
         public bool IsErrorVisible()
         {
-            return Driver.FindElement(By.CssSelector(".flash.error")).Displayed;
+            return _driver.FindElement(By.CssSelector(".flash.error")).Displayed;
         }
 
         public bool IsValidationVisible()
         {
-            return Driver.FindElement(By.CssSelector(".flash")).Displayed;
+            return _driver.FindElement(By.CssSelector(".flash")).Displayed;
         }
     }
 }
