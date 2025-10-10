@@ -40,6 +40,9 @@ namespace SpecFlowSelenium.Pages
             _driver.FindElement(By.Id("username")).SendKeys(user);
             _driver.FindElement(By.Id("password")).SendKeys(pass);
             _driver.FindElement(By.CssSelector("button[type='submit']")).Click();
+
+            WaitHelpers.WaitElementVisible(By.CssSelector(".flash"));
+
             return this;
         }
 
