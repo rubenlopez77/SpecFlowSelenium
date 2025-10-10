@@ -4,6 +4,7 @@ using OpenQA.Selenium.Support.UI;
 using SpecFlowSelenium.Helpers;
 using SpecFlowSelenium.Pages;
 using TechTalk.SpecFlow;
+using static NUnit.Framework.Assert;
 
 namespace SpecFlowSelenium.Steps
 {
@@ -46,19 +47,19 @@ namespace SpecFlowSelenium.Steps
         [Then("I should see the dashboard")]
         public void ThenIShouldSeeTheDashboard()
         {
-            Assert.That(_home.IsDashboardVisible(), Is.True, "Se esperaba el mensaje de éxito tras el login válido.");
+            That(_home.IsDashboardVisible(), Is.True, "Se esperaba el mensaje de éxito tras el login válido.");
         }
 
         [Then("I should see an error message")]
         public void ThenIShouldSeeAnErrorMessage()
         {
-            Assert.That(_home.IsErrorVisible(), Is.True, "Se esperaba un mensaje de error por contraseña inválida.");
+            That(_home.IsErrorVisible(), Is.True, "Se esperaba un mensaje de error por contraseña inválida.");
         }
 
         [Then("I should see a validation message")]
         public void ThenIShouldSeeAValidationMessage()
         {
-            Assert.That(_home.IsValidationVisible(), Is.True, "Se esperaba un mensaje de validación por campos vacíos.");
+            That(_home.IsValidationVisible(), Is.True, "Se esperaba un mensaje de validación por campos vacíos.");
         }
     }
 }
