@@ -1,34 +1,23 @@
-﻿using TechTalk.SpecFlow;
-using SpecFlowSelenium.Pages;
-using static NUnit.Framework.Assert;
+using NUnit.Framework;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using SpecFlowSelenium.Helpers;
+using SpecFlowSelenium.Pages;
+using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Steps
 {
     [Binding]
     public class LoginSteps
     {
+        private readonly HomePage _home;
+        private readonly TestConfiguration _config;
 
-        /// <summary>
-        ///
-        /// Se utilizan helpers (como HomePage) para centralizar la interacción con los navegadores,
-        /// lo que permite encadenar métodos.
-        ///
-        /// Esto facilita la escritura/lectura de pruebas claras, evita duplicación de código y mejora el mantenimiento.
-        ///
-        /// Paralelización y multi-navegador:
-        /// - Cada escenario puede ejecutarse en múltiples navegadores definidos en el .env.
-        /// - Los helpers utilizan DriverFactory.CurrentDriver para acceder al driver actual de cada thread.
-        /// - Gracias a ThreadLocal<IWebDriver>, cada thread obtiene su propia instancia de navegador sin interferencias.
-        ///
-        /// - Todos los métodos de los helpers son síncronos (Selenium), por lo que no se requiere 'await'.
-        /// - La arquitectura permite extenderse con otros helpers (por ejemplo DashboardPage, SettingsPage)
-        ///   sin exponer la lista de drivers en los Steps.
-        /// </summary>
-
-        private readonly HomePage _home = new HomePage();
-        private readonly TestConfiguration _config = new();
-
+        public LoginSteps(IWebDriver driver, IWait<IWebDriver> wait, TestConfiguration config)
+        {
+            _config = config;
+            _home = new HomePage(driver, wait, config);
+        }
 
         [Given("I am on the login page")]
         public void GivenIAmOnLoginPage()
@@ -45,40 +34,31 @@ namespace SpecFlowSelenium.Steps
         [When("I enter wrong password")]
         public void WhenIEnterWrongPassword()
         {
-            _home.Login("usuario", "error");
+            _home.Login(_config.ValidCredentials.Username, "error");
         }
 
         [When("I leave credentials empty")]
         public void WhenILeaveCredentialsEmpty()
         {
-            _home.Login("", "");
-        }
-
-        [When("I click the login button")]
-        public void WhenIClickLoginButton()
-        {
-           //TODO obsoleto 
+            _home.Login(string.Empty, string.Empty);
         }
 
         [Then("I should see the dashboard")]
         public void ThenIShouldSeeTheDashboard()
         {
-    
-            That(_home.IsDashboardVisible());
+            Assert.That(_home.IsDashboardVisible(), Is.True, "Se esperaba el mensaje de éxito tras el login válido.");
         }
 
         [Then("I should see an error message")]
         public void ThenIShouldSeeAnErrorMessage()
         {
-     
-            That(_home.IsErrorVisible());
+            Assert.That(_home.IsErrorVisible(), Is.True, "Se esperaba un mensaje de error por contraseña inválida.");
         }
 
         [Then("I should see a validation message")]
         public void ThenIShouldSeeAValidationMessage()
         {
-          
-            That(_home.IsValidationVisible());
+            Assert.That(_home.IsValidationVisible(), Is.True, "Se esperaba un mensaje de validación por campos vacíos.");
         }
     }
 }

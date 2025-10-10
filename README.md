@@ -34,11 +34,10 @@ Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Developme
 SpecFlowSelenium/
 ├── Features/             # Escenarios en lenguaje Gherkin
 ├── StepDefinitions/      # Código C# que implementa los pasos
-├── Helpers/              # Utilidades (DriverFactory, Configuración, etc.)
+├── Helpers/              # Utilidades (DriverHooks, Configuración, etc.)
 ├── TestResults/          # Resultados de las ejecuciones
 ├── specflow.json         # Configuración de SpecFlow
-├── .env                  # Variables de entorno (URLs, credenciales, etc.)
-└── SetUpFixture.cs       # Configuración global de pruebas
+└── .env                  # Variables de entorno (URLs, credenciales, etc.)
 ```
 
 ---
@@ -59,8 +58,11 @@ SpecFlowSelenium/
 3. Crea el archivo `.env` (ya existe en el repo) con tus valores:
    ```ini
    BASE_URL=https://tusitio.com
-   BROWSER=chrome
+   USER=usuario_demo
+   PASS=secreto_demo
+   BROWSERS=chrome
    HEADLESS=true
+   TIMEOUT_SECONDS=10
    ```
 
 4. Ejecuta las pruebas:
@@ -70,18 +72,28 @@ SpecFlowSelenium/
 
 ---
 
+## 🏗️ Arquitectura de automatización
+
+- **Inyección de dependencias de SpecFlow**: los hooks (`DriverHooks`) crean el `IWebDriver` y lo registran en el contenedor de SpecFlow junto con un `WebDriverWait`. Los step definitions simplemente consumen las dependencias ya resueltas.
+- **Fail-fast en configuración**: `TestConfiguration` carga el archivo `.env` y valida que todas las variables críticas estén presentes (`BASE_URL`, `USER`, `PASS`, `BROWSERS`, `HEADLESS`, `TIMEOUT_SECONDS`). Si falta alguna, la ejecución falla inmediatamente.
+- **Page Objects con esperas explícitas**: `HomePage` utiliza `WebDriverWait` y `ExpectedConditions` para interactuar con elementos de manera robusta, minimizando condiciones de carrera.
+- **Limpieza garantizada de drivers**: al finalizar cada escenario se cierran y liberan los navegadores levantados evitando fugas de recursos.
+- **Logging consistente**: todas las operaciones relevantes (creación/cierre de drivers, navegación) pasan por `Debug.Log`, permitiendo un seguimiento uniforme en consola.
+
+---
+
 ## 🧪 Ejemplo de escenario (Login.feature)
 
 ```gherkin
-Feature: Login
+Feature: Login functionality
   In order to access the application
   As a registered user
-  I want to log in successfully
+  I want to log in and handle errors correctly
 
   Scenario: Successful login
     Given I am on the login page
     When I enter valid credentials
-    Then I should be redirected to the home page
+    Then I should see the dashboard
 ```
 
 ---

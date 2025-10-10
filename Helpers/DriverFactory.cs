@@ -1,122 +1,120 @@
-﻿using TechTalk.SpecFlow;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using BoDi;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Edge;
-using DotNetEnv;
-using NUnit.Framework;
+using OpenQA.Selenium.Firefox;
+using OpenQA.Selenium.Support.UI;
 using SpecFlowLogin.Helpers.DebugTools;
-
+using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Helpers
 {
-    [Binding, Parallelizable(ParallelScope.All)]
-    public class DriverFactory
+    [Binding]
+    public class DriverHooks
     {
-        private static ThreadLocal<IWebDriver> _currentDriver = new();
+        private readonly IObjectContainer _container;
+        private readonly TestConfiguration _configuration;
+        private readonly List<IWebDriver> _activeDrivers = new();
 
-        public static IWebDriver CurrentDriver
+        public DriverHooks(IObjectContainer container, TestConfiguration configuration)
         {
-            get
-            {
-                if (_currentDriver.Value == null)
-                    throw new InvalidOperationException(
-                        "ERROR: CurrentDriver no inicializado. Se anulan las pruebas"
-                    );
-                return _currentDriver.Value;
-            }
-            set => _currentDriver.Value = value ?? throw new ArgumentNullException(nameof(value), "ERROR: CurrentDriver no está asignado.");
+            _container = container;
+            _configuration = configuration;
         }
-        private readonly ScenarioContext _context;
-        
-        
-        public DriverFactory(ScenarioContext context) => _context = context;
-
 
         [BeforeScenario(Order = 0)]
-        public async Task BeforeScenario()
+        public void CreateScenarioDriver()
         {
-            
-            var browsersEnv = Environment.GetEnvironmentVariable("BROWSERS");
-            var allBrowsers = string.IsNullOrWhiteSpace(browsersEnv)
-                ? new[] { "chrome" }
-                : browsersEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var browser = _configuration.Browsers.First();
+            Debug.Log($"Creando driver para '{browser}' (headless={_configuration.Headless})...");
 
-            // lanzar todos navegadores o solo 1 según tags
-            bool fullParallel = _context.ScenarioInfo.Tags.Contains("smoke");
-            var browsers = fullParallel ? allBrowsers : new[] { allBrowsers.First() };
+            var driver = CreateDriver(browser, _configuration.Headless);
+            _activeDrivers.Add(driver);
 
-            Debug.Log($"Escenario '{_context.ScenarioInfo.Title}' en: { string.Join(", ", browsers)}");
-        
-            bool headless = (Environment.GetEnvironmentVariable("HEADLESS") ?? "true").Trim().ToLowerInvariant() == "true";
-
-            Debug.Log($"Creamos los Drivers en paralelo...");
-
-            var tasks = browsers.Select(browser => Task.Run(() =>
-            {
-                Debug.Log($"Lanzando '{browser}' (headless={headless})...");
-                var driver = CreateDriver(browser, headless);
-
-                Debug.Log($"[Thread {Thread.CurrentThread.ManagedThreadId}] {browser} OK!");
-
-                return driver;
-            })).ToArray();
-
-            var drivers = await Task.WhenAll(tasks);
-            _context["drivers"] = drivers.ToList();
-
-            // CurrentDriver a cada hilo. Importante
-            CurrentDriver = drivers.First();
+            _container.RegisterInstanceAs(driver);
+            var wait = new WebDriverWait(new SystemClock(), driver, _configuration.DefaultTimeout, TimeSpan.FromMilliseconds(500));
+            _container.RegisterInstanceAs<IWait<IWebDriver>>(wait);
         }
 
-        [AfterScenario(Order = 0)]
-        public async Task AfterScenario()
+        [AfterScenario(Order = 100)]
+        public void CleanupDrivers()
         {
-            if (_context.TryGetValue("drivers", out List<IWebDriver> drivers))
+            foreach (var driver in _activeDrivers)
             {
-                var closeTasks = drivers.Select(d => Task.Run(() =>
+                try
                 {
-                    try
-                    {
-                        Debug.Log($"Cerrando ...");
-                        d.Quit();
-                        d.Dispose();
-                        Debug.Log($"Cerrado OK!");
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.Log($"Error cerrando: {ex.Message}");
-                    }
-                })).ToArray();
-
-                await Task.WhenAll(closeTasks);
+                    Debug.Log("Cerrando driver...");
+                    driver.Quit();
+                }
+                catch (Exception ex)
+                {
+                    Debug.Log($"Error al cerrar el driver: {ex.Message}");
+                }
+                finally
+                {
+                    driver.Dispose();
+                }
             }
+
+            _activeDrivers.Clear();
         }
+
         private IWebDriver CreateDriver(string browserName, bool headless)
         {
-            browserName = browserName.ToLowerInvariant().Trim();
+            browserName = browserName.ToLowerInvariant();
 
-            switch (browserName)
+            try
             {
-
-                // TODO. Mas implementaciones segun Browser
-                case "firefox":
-                    var fopts = new FirefoxOptions();
-                    if (headless) fopts.AddArgument("--headless");
-                    return new FirefoxDriver(fopts);
-
-                case "edge":
-                    var eopts = new EdgeOptions();
-                    if (headless) eopts.AddArgument("headless");
-                    return new EdgeDriver(eopts);
-
-                case "chrome":
-                default:
-                    var copts = new ChromeOptions();
-                    if (headless) copts.AddArgument("--headless=new");
-                    copts.AddArgument("--disable-gpu");
-                    return new ChromeDriver(copts);
+                return browserName switch
+                {
+                    "firefox" => BuildFirefox(headless),
+                    "edge" => BuildEdge(headless),
+                    _ => BuildChrome(headless)
+                };
             }
+            catch (DriverServiceNotFoundException ex)
+            {
+                throw new InvalidOperationException($"No se encontró el driver necesario para '{browserName}'.", ex);
+            }
+        }
+
+        private static IWebDriver BuildChrome(bool headless)
+        {
+            var options = new ChromeOptions();
+            if (headless)
+            {
+                options.AddArgument("--headless=new");
+            }
+
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--window-size=1280,800");
+
+            return new ChromeDriver(options);
+        }
+
+        private static IWebDriver BuildFirefox(bool headless)
+        {
+            var options = new FirefoxOptions();
+            if (headless)
+            {
+                options.AddArgument("-headless");
+            }
+
+            return new FirefoxDriver(options);
+        }
+
+        private static IWebDriver BuildEdge(bool headless)
+        {
+            var options = new EdgeOptions();
+            if (headless)
+            {
+                options.AddArgument("headless");
+            }
+
+            return new EdgeDriver(options);
         }
     }
 }
