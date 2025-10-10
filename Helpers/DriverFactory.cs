@@ -1,13 +1,14 @@
-﻿using TechTalk.SpecFlow;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Firefox;
-using OpenQA.Selenium.Edge;
+﻿using BoDi;
 using NUnit.Framework;
+using OpenQA.Selenium;
+using OpenQA.Selenium.BiDi.Script;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Firefox;
 using SpecFlowLogin.Helpers.DebugTools;
-using BoDi;
 using System.Collections.Concurrent;
 using System.IO;
+using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Helpers
 {
@@ -65,12 +66,12 @@ namespace SpecFlowSelenium.Helpers
             bool headless = (Environment.GetEnvironmentVariable("HEADLESS") ?? "true")
                 .Trim().ToLowerInvariant() == "true";
 
-            Debug.Log($"🚀 Escenario '{_context.ScenarioInfo.Title}' con modo: {mode}");
+            Debug.Log($" [] Escenario '{_context.ScenarioInfo.Title}' con modo: {mode}");
 
             if (mode == "MULTI")
             {
                 // ========== MODO MULTI (varios navegadores a la vez) ==========
-                Debug.Log($"🔹 Lanzando navegadores: {string.Join(", ", browsers)}");
+                Debug.Log($" - Lanzando navegadores: {string.Join(", ", browsers)}");
 
                 var drivers = new ConcurrentDictionary<string, IWebDriver>();
 
@@ -80,7 +81,7 @@ namespace SpecFlowSelenium.Helpers
                     {
                         var driver = CreateDriver(browser, headless);
                         drivers[browser] = driver;
-                        Debug.Log($"✅ {browser} inicializado correctamente.");
+                        Debug.Log($"- {browser} inicializado correctamente.");
                     }
                     catch (Exception ex)
                     {
@@ -95,13 +96,13 @@ namespace SpecFlowSelenium.Helpers
                 CurrentDriver = (IWebDriver)multiDriver;
                 _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
 
-                Debug.Log("🧠 MultiDriver activo (modo espejo cross-browser).");
+                Debug.Log("MultiDriver activo (modo espejo cross-browser).");
             }
             else
             {
                 // ========== MODO PARALLEL (1 navegador por escenario) ==========
                 var browser = browsers.First();
-                Debug.Log($"🔹 Paralelismo por escenario, navegador: {browser}");
+                Debug.Log($"Paralelismo por escenario, navegador: {browser}");
 
                 var driver = CreateDriver(browser, headless);
                 _context["drivers"] = new List<IWebDriver> { driver };
@@ -110,7 +111,7 @@ namespace SpecFlowSelenium.Helpers
                 CurrentDriver = driver;
                 _container.RegisterInstanceAs(new DriverContext(driver));
 
-                Debug.Log("✅ Driver individual listo (modo paralelo).");
+                Debug.Log("Driver individual listo (modo paralelo).");
             }
         }
 
@@ -181,7 +182,9 @@ namespace SpecFlowSelenium.Helpers
                 case "chrome":
                 default:
                     var copts = new ChromeOptions();
-                    copts.AddArgument($"--user-data-dir={profile}");
+                  
+                    if (Environment.GetEnvironmentVariable("EXECUTION_MODE") == "MULTI")
+                        copts.AddArgument($"--user-data-dir={profile}");
                     if (headless) copts.AddArgument("--headless=new");
                     copts.AddArgument("--no-sandbox");
                     copts.AddArgument("--disable-dev-shm-usage");
