@@ -1,0 +1,73 @@
+﻿name: QA Dual-Mode Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # permite ejecución manual
+
+jobs:
+  # ==================================
+  # JOB AUTOMÁTICO: Parallel Scenarios
+  # ==================================
+  parallel_tests:
+    name: 🧩 Parallel Scenarios (Chrome)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'  # solo si no es ejecución manual
+
+    env:
+      EXECUTION_MODE: PARALLEL
+      BROWSERS: chrome
+      HEADLESS: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run parallel tests
+        run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Parallel.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: parallel-results
+          path: '**/Parallel.trx'
+
+  # ==================================
+  # JOB MANUAL: Cross-Browser MultiDriver
+  # ==================================
+  multi_tests:
+    name: 🌐 Cross-Browser MultiDriver
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # solo si se lanza manualmente
+
+    env:
+      EXECUTION_MODE: MULTI
+      BROWSERS: chrome,firefox,edge
+      HEADLESS: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run multi-browser tests
+        run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Multi.trx"
+
+      - name: Upload multi-browser results
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-results
+          path: '**/Multi.trx'
