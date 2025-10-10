@@ -1,4 +1,4 @@
-﻿name: QA Dual-Mode Pipeline
+﻿name: Dual-Mode Pipeline
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
   # JOB AUTOMÁTICO: Parallel Scenarios
   # ==================================
   parallel_tests:
-    name: 🧩 Parallel Scenarios (Chrome)
+    name: Parallel Scenarios (Chrome)
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch'  # solo si no es ejecución manual
 

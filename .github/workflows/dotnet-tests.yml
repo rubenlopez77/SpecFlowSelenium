@@ -1,36 +1,79 @@
-name: .NET Test Automation
+﻿name: Dual-Mode Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+  workflow_dispatch:  # permite ejecución manual
 
 jobs:
-  build-and-test:
+  # ==================================
+  # JOB AUTOMÁTICO: Parallel Scenarios
+  # ==================================
+  parallel_tests:
+    name: 🧩 Parallel Scenarios (Chrome)
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'  # solo si no es ejecución manual
+
+    env:
+      EXECUTION_MODE: PARALLEL
+      BROWSERS: chrome
+      HEADLESS: true
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        run: dotnet restore SpecFlowSelenium.sln
+        working-directory: SpecFlowSelenium
+        run: dotnet restore
 
-      - name: Build
-        run: dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
+      - name: Run parallel tests
+        working-directory: SpecFlowSelenium
+        run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Parallel.trx"
 
-      - name: Run tests
-        run: dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
-
-      - name: Publish test results
-        if: always()
+      - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults
-          path: '**/TestResults/*.trx'
+          name: parallel-results
+          path: '**/Parallel.trx'
+
+  # ==================================
+  # JOB MANUAL: Cross-Browser MultiDriver
+  # ==================================
+  multi_tests:
+    name: 🌐 Cross-Browser MultiDriver
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # solo si se lanza manualmente
+
+    env:
+      EXECUTION_MODE: MULTI
+      BROWSERS: chrome,firefox,edge
+      HEADLESS: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        working-directory: SpecFlowSelenium
+        run: dotnet restore
+
+      - name: Run multi-browser tests
+        working-directory: SpecFlowSelenium
+        run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Multi.trx"
+
+      - name: Upload multi-browser results
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-results
+          path: '**/Multi.trx'
