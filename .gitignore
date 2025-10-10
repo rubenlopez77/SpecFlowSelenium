@@ -9,6 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+.env
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -364,3 +365,4 @@ FodyWeavers.xsd
 
 #variables
 .env
+/.env
