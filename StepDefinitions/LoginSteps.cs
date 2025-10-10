@@ -10,24 +10,40 @@ namespace SpecFlowSelenium.Steps
     {
 
         /// <summary>
+        /// Clase correspondiente al flujo de pasos del login.
         ///
-        /// Se utilizan helpers (como HomePage) para centralizar la interacción con los navegadores,
-        /// lo que permite encadenar métodos.
+        ///   Arquitectura:
+        /// - Este archivo define los pasos BDD (Given/When/Then) y delega toda la lógica de interacción con el navegador
+        /// a los helpers o Page Objects (como <see cref="HomePage"/>).
+        /// - Sigue el patrón Page Object Model (POM), que fomenta la reutilización de código, la legibilidad
+        /// y el mantenimiento a largo plazo.
         ///
-        /// Esto facilita la escritura/lectura de pruebas claras, evita duplicación de código y mejora el mantenimiento.
+        ///   Estructura y flujo:
+        /// - Cada Step invoca métodos de los Helpers (HomePage, DashboardPage, SettingsPage, etc.)
+        /// que encapsulan las acciones sobre el DOM (clicks, inputs, asserts...).
+        /// - Los helpers encadenan métodos para ofrecer una sintaxis fluida y expresiva en las pruebas.
+        /// - Todos los métodos son síncronos (propios de Selenium), por lo que no requieren 'await'.
         ///
-        /// Paralelización y multi-navegador:
-        /// - Cada escenario puede ejecutarse en múltiples navegadores definidos en el .env.
-        /// - Los helpers utilizan DriverFactory.CurrentDriver para acceder al driver actual de cada thread.
-        /// - Gracias a ThreadLocal<IWebDriver>, cada thread obtiene su propia instancia de navegador sin interferencias.
+        ///   Paralelización y multi-navegador:
+        /// - Los escenarios pueden ejecutarse en paralelo en distintos navegadores definidos en el archivo .env (por ejemplo, Chrome, Firefox, Edge).
+        /// - <see cref="DriverFactory"/> gestiona internamente las instancias del navegador mediante <see cref="ThreadLocal{T}"/>.
+        /// - Cada hilo de ejecución mantiene su propio IWebDriver aislado, evitando interferencias entre escenarios.
+        /// - Los helpers obtienen el driver actual mediante <see cref="DriverFactory.CurrentDriver"/>, garantizando independencia por hilo.
         ///
-        /// - Todos los métodos de los helpers son síncronos (Selenium), por lo que no se requiere 'await'.
-        /// - La arquitectura permite extenderse con otros helpers (por ejemplo DashboardPage, SettingsPage)
-        ///   sin exponer la lista de drivers en los Steps.
+        ///   Extensibilidad:
+        /// - La arquitectura está pensada para escalar: se pueden agregar nuevos helpers (por ejemplo, DashboardPage o SettingsPage)
+        /// sin modificar los Steps existentes.
+        /// - Los Steps no acceden directamente a las listas de drivers ni a la configuración del entorno,
+        /// manteniendo bajo acoplamiento y alta cohesión.
+        ///
+        ///   Beneficios:
+        /// - Código más limpio y expresivo en los archivos .feature.
+        /// - Mantenimiento simplificado al centralizar la lógica de interacción.
+        /// - Ejecución paralela segura y compatible con SpecFlow + NUnit.
         /// </summary>
+        /// 
 
-        //  private readonly HomePage _home = new HomePage();
-        //private readonly TestConfiguration _config = new();
+
 
         private readonly HomePage _home;
         private readonly TestConfiguration _config;
