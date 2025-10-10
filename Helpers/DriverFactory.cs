@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using BoDi;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -17,7 +19,7 @@ namespace SpecFlowSelenium.Helpers
     {
         private readonly IObjectContainer _container;
         private readonly TestConfiguration _configuration;
-        private readonly List<IWebDriver> _activeDrivers = new();
+        private readonly List<BrowserSession> _activeSessions = new();
 
         public DriverHooks(IObjectContainer container, TestConfiguration configuration)
         {
@@ -26,40 +28,72 @@ namespace SpecFlowSelenium.Helpers
         }
 
         [BeforeScenario(Order = 0)]
-        public void CreateScenarioDriver()
+        public async Task CreateScenarioDrivers()
         {
-            var browser = _configuration.Browsers.First();
-            Debug.Log($"Creando driver para '{browser}' (headless={_configuration.Headless})...");
+            var browsers = _configuration.Browsers;
+            var timeout = _configuration.DefaultTimeout;
 
-            var driver = CreateDriver(browser, _configuration.Headless);
-            _activeDrivers.Add(driver);
+            Debug.Log($"Creando drivers para: {string.Join(", ", browsers)} (headless={_configuration.Headless})...");
 
-            _container.RegisterInstanceAs(driver);
-            var wait = new WebDriverWait(new SystemClock(), driver, _configuration.DefaultTimeout, TimeSpan.FromMilliseconds(500));
-            _container.RegisterInstanceAs<IWait<IWebDriver>>(wait);
+            var sessionTasks = browsers.Select(browser => Task.Run(() =>
+            {
+                try
+                {
+                    Debug.Log($"[{browser}] Inicializando driver...");
+                    var driver = CreateDriver(browser, _configuration.Headless);
+                    var wait = new WebDriverWait(new SystemClock(), driver, timeout, TimeSpan.FromMilliseconds(500));
+                    Debug.Log($"[{browser}] Driver listo.");
+                    return new BrowserSession(browser, driver, wait);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"No fue posible iniciar el navegador '{browser}'.", ex);
+                }
+            })).ToArray();
+
+            var sessions = await Task.WhenAll(sessionTasks);
+
+            if (sessions.Length == 0)
+            {
+                throw new InvalidOperationException("No se pudo inicializar ningún driver de navegador para el escenario.");
+            }
+
+            foreach (var session in sessions)
+            {
+                _activeSessions.Add(session);
+            }
+
+            var readOnlySessions = new ReadOnlyCollection<BrowserSession>(sessions);
+            _container.RegisterInstanceAs<IReadOnlyCollection<BrowserSession>>(readOnlySessions);
+            _container.RegisterInstanceAs<IEnumerable<BrowserSession>>(readOnlySessions);
+
+            // Compatibilidad con steps que dependan de IWebDriver/IWait concretos.
+            var primarySession = sessions.First();
+            _container.RegisterInstanceAs(primarySession.Driver);
+            _container.RegisterInstanceAs(primarySession.Wait);
         }
 
         [AfterScenario(Order = 100)]
         public void CleanupDrivers()
         {
-            foreach (var driver in _activeDrivers)
+            foreach (var session in _activeSessions)
             {
                 try
                 {
-                    Debug.Log("Cerrando driver...");
-                    driver.Quit();
+                    Debug.Log($"[{session.Name}] Cerrando driver...");
+                    session.Driver.Quit();
                 }
                 catch (Exception ex)
                 {
-                    Debug.Log($"Error al cerrar el driver: {ex.Message}");
+                    Debug.Log($"[{session.Name}] Error al cerrar el driver: {ex.Message}");
                 }
                 finally
                 {
-                    driver.Dispose();
+                    session.Driver.Dispose();
                 }
             }
 
-            _activeDrivers.Clear();
+            _activeSessions.Clear();
         }
 
         private IWebDriver CreateDriver(string browserName, bool headless)
