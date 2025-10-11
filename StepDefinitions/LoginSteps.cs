@@ -1,7 +1,7 @@
-﻿using TechTalk.SpecFlow;
+﻿using SpecFlowSelenium.Helpers;
 using SpecFlowSelenium.Pages;
+using TechTalk.SpecFlow;
 using static NUnit.Framework.Assert;
-using SpecFlowSelenium.Helpers;
 
 namespace SpecFlowSelenium.Steps
 {
@@ -81,27 +81,27 @@ namespace SpecFlowSelenium.Steps
         [When("I click the login button")]
         public void WhenIClickLoginButton()
         {
-           //TODO obsoleto 
+            //TODO obsoleto 
         }
 
         [Then("I should see the dashboard")]
         public void ThenIShouldSeeTheDashboard()
         {
-    
+
             That(_home.IsDashboardVisible());
         }
 
         [Then("I should see an error message")]
         public void ThenIShouldSeeAnErrorMessage()
         {
-     
+
             That(_home.IsErrorVisible());
         }
 
         [Then("I should see a validation message")]
         public void ThenIShouldSeeAValidationMessage()
         {
-          
+
             That(_home.IsValidationVisible());
         }
     }

@@ -18,6 +18,7 @@
   <ItemGroup>
     <None Include=".github\workflows\ci.yml" />
     <None Include=".github\workflows\dotnet-tests.yml" />
+    <None Include=".github\workflows\version-E2E.yml" />
   </ItemGroup>
 
   <ItemGroup>

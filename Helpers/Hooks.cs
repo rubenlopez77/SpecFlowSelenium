@@ -1,8 +1,6 @@
-﻿using TechTalk.SpecFlow;
-using DotNetEnv;
-using System;
-using System.Linq;
+﻿using DotNetEnv;
 using SpecFlowLogin.Helpers.DebugTools;
+using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Helpers
 {
@@ -16,7 +14,7 @@ namespace SpecFlowSelenium.Helpers
             {
                 // Cargar variables desde el .env
                 Env.Load();
-                Debug.Log ("Variables .env cargadas correctamente");
+                Debug.Log("Variables .env cargadas correctamente");
             }
             catch (Exception ex)
             {
@@ -45,7 +43,7 @@ namespace SpecFlowSelenium.Helpers
         public static void AfterAllTests()
         {
             Console.WriteLine("Finalizando pruebas...");
-           
+
         }
     }
 }

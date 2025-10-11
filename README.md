@@ -2,7 +2,11 @@
 
 ![Parallel Scenarios](https://github.com/rubenlopez77/SpecFlowSelenium/actions/workflows/ci.yml/badge.svg)
 
-**WIP!!** Este proyecto es una suite de automatización **experimental** creada para explorar **SpecFlow con Selenium**, ejecutando pruebas en **paralelo** y en **múltiples navegadores**, con control de modo desde el archivo `.env`.
+**⚠️ Prueba de concepto (PoC)** — Este proyecto se utiliza únicamente para **experimentar con ejecución paralela y multi-navegador** usando **SpecFlow + Selenium**.  
+Su propósito es probar la robustez, el aislamiento de contextos y la eficiencia en pipelines CI/CD. No está destinado a entornos productivos.
+
+Current version: **v0.0.0**
+
 
 ---
 
@@ -15,7 +19,7 @@ Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Developme
 - Ejecución **en paralelo** (ParallelScope.All)
 - Pruebas **cross-browser simultáneas** con `MultiDriver`
 - Integración con Selenium WebDriver para interacción real con el navegador
-- Helpers reutilizables (Page Objects) para reducir duplicación y mejorar el mantenimiento
+- Helpers reutilizables (Page Objects) para reducir duplicación y mejorar mantenimiento
 - Estrategia de tags: diferenciar *Smoke* y *Regresión* (velocidad vs cobertura)
 
 ---
@@ -27,7 +31,7 @@ Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Developme
 - [Selenium WebDriver](https://www.selenium.dev/)
 - [NUnit](https://nunit.org/)
 - GitHub Actions (CI/CD con matriz dual-mode)
-- DotNetEnv (para configuración por `.env`)
+- DotNetEnv (para configuración con `.env`)
 
 ---
 
@@ -91,7 +95,7 @@ Feature: Login
 
 ## 🔄 Integración continua (CI/CD)
 
-Este proyecto incluye un **pipeline dual-mode para GitHub Actions**:  
+El proyecto incluye un **pipeline dual-mode para GitHub Actions**:  
 Archivo → `.github/workflows/ci.yml`
 
 | Job | Trigger | Navegadores | Modo | Propósito |
@@ -114,22 +118,20 @@ Archivo → `.github/workflows/ci.yml`
 
 ---
 
-## 🩺 Troubleshooting
+## 🔧 Último cambio: aislamiento de perfiles temporales
 
-### ❗ Error: `session not created: probably user data directory is already in use`
+Para evitar conflictos entre navegadores (especialmente Edge y Chrome en Linux CI),  
+cada navegador ahora usa su propio directorio temporal bajo `/tmp/wd-profiles/{browser}/profile-{GUID}`.
 
-**Causa:**  
-Chrome o Edge están intentando compartir el mismo perfil de usuario (`--user-data-dir`) cuando se ejecutan varias pruebas en paralelo.
-
-**Solución aplicada en el proyecto:**  
-Cada hilo crea su propio perfil temporal único usando `Guid` y `ThreadId`:
+Ejemplo de implementación:
 
 ```csharp
-string profile = Path.Combine(Path.GetTempPath(), $"wd-profile-{browserName}-{Guid.NewGuid()}-{Thread.CurrentThread.ManagedThreadId}");
-copts.AddArgument($"--user-data-dir={profile}");
+string baseDir = Path.Combine(Path.GetTempPath(), "wd-profiles", browserName);
+Directory.CreateDirectory(baseDir);
+string profile = Path.Combine(baseDir, $"profile-{Guid.NewGuid()}");
 ```
 
-Esto garantiza que cada instancia de navegador sea independiente, eliminando conflictos de sesión en modo paralelo.
+Esto garantiza que cada instancia sea completamente independiente, incluso en ejecución paralela o en entornos CI.
 
 ---
 
@@ -139,9 +141,13 @@ Esto garantiza que cada instancia de navegador sea independiente, eliminando con
 - [ ] Mejorar sistema de logging (NLog / Serilog)  
 - [ ] Generar reportes visuales con SpecFlow+ LivingDoc  
 - [ ] Añadir pruebas de regresión y smoke tags diferenciados  
-- [ ] Integrar métricas de rendimiento (Tiempos por Step / Escenario)
+- [ ] Integrar métricas de rendimiento (tiempos por Step / Escenario)
 
 ---
+
+🧠 **Nota:**  
+Este proyecto es una **prueba de concepto experimental** centrada en el aprendizaje y la evaluación de entornos paralelos con Selenium y SpecFlow.
+
 
 **Nota:**  
 El modo `MULTI` es **experimental** consume más recursos, ya que ejecuta múltiples navegadores en espejo.  

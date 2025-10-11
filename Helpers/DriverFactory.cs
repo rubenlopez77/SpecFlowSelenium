@@ -1,13 +1,11 @@
 ﻿using BoDi;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.BiDi.Script;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Firefox;
 using SpecFlowLogin.Helpers.DebugTools;
 using System.Collections.Concurrent;
-using System.IO;
 using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Helpers
@@ -162,7 +160,10 @@ namespace SpecFlowSelenium.Helpers
         private IWebDriver CreateDriver(string browserName, bool headless)
         {
             browserName = browserName.ToLowerInvariant().Trim();
-            string profile = Path.Combine(Path.GetTempPath(), $"wd-profile-{browserName}-{Guid.NewGuid()}");
+
+            string profile = Path.Combine(Path.GetTempPath(),
+                $"wd-profile-{browserName}-{Guid.NewGuid()}-{_context.ScenarioInfo.Title.GetHashCode()}"
+);
 
             switch (browserName)
             {
@@ -182,7 +183,7 @@ namespace SpecFlowSelenium.Helpers
                 case "chrome":
                 default:
                     var copts = new ChromeOptions();
-                  
+
                     if (Environment.GetEnvironmentVariable("EXECUTION_MODE") == "MULTI")
                         copts.AddArgument($"--user-data-dir={profile}");
                     if (headless) copts.AddArgument("--headless=new");
