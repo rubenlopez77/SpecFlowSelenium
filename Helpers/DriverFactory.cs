@@ -1,49 +1,43 @@
-﻿using BoDi;
-using NUnit.Framework;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using BoDi;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Firefox;
-using SpecFlowLogin.Helpers.DebugTools;
-using System.Collections.Concurrent;
 using TechTalk.SpecFlow;
+using NUnit.Framework;
+using SpecFlowLogin.Helpers.DebugTools; 
+using DotNetEnv; 
 
 namespace SpecFlowSelenium.Helpers
 {
     /// <summary>
-    /// Gestiona el ciclo de vida de los navegadores en cada escenario SpecFlow.
-    /// 
-    ///   Características principales:
-    /// - Lanza múltiples navegadores definidos en la variable de entorno BROWSERS (por ejemplo: chrome,firefox,edge).
-    /// - Ejecuta las acciones en todos ellos en paralelo a través de <see cref="MultiDriver"/>.
-    /// - Cada navegador usa un perfil temporal (--user-data-dir) aislado.
-    /// - Se cierran todos los navegadores al final del escenario.
-    /// 
-    /// 🔹 Ejemplo de log:
-    ///  Escenario 'Login' ejecutándose con: chrome, firefox, edge
-    ///  Todos los navegadores cerrados correctamente.
+    /// Gestiona el ciclo de vida del IWebDriver por escenario de SpecFlow.
+    ///
+    /// - Modo PARALLEL: un solo navegador por escenario (el primero de BROWSERS).
+    /// - Modo MULTI: crea un MultiDriver que replica acciones en todos los navegadores indicados.
+    ///
+    /// Robustece la paralelización:
+    /// - Perfiles aislados: /tmp/wd-profiles/{browser}/{ScenarioHash}/profile-{GUID}
+    /// - Fail-fast: si falla la creación del driver, aborta el escenario con excepción clara.
+    /// - Limpieza: cierra y libera todos los drivers al finalizar el escenario.
     /// </summary>
     [Binding, Parallelizable(ParallelScope.All)]
     public class DriverFactory
     {
-        private static ThreadLocal<IWebDriver> _currentDriver = new();
-
+        private static readonly ThreadLocal<IWebDriver?> _currentDriver = new();
         public static IWebDriver CurrentDriver
         {
-            get
-            {
-                if (_currentDriver.Value == null)
-                    throw new InvalidOperationException("ERROR: CurrentDriver no inicializado.");
-                return _currentDriver.Value;
-            }
-            set => _currentDriver.Value = value ?? throw new ArgumentNullException(nameof(value));
+            get => _currentDriver.Value ?? throw new InvalidOperationException("ERROR: CurrentDriver no inicializado.");
+            private set => _currentDriver.Value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         private readonly ScenarioContext _context;
         private readonly IObjectContainer _container;
-
-        // Mantiene todos los drivers del escenario
-        private static ConcurrentDictionary<string, IWebDriver> _allDrivers = new();
 
         public DriverFactory(ScenarioContext context, IObjectContainer container)
         {
@@ -51,10 +45,27 @@ namespace SpecFlowSelenium.Helpers
             _container = container;
         }
 
+        // Carga .env una vez al iniciar la test run (no falla si no existe)
+        [BeforeTestRun(Order = -1000)]
+        public static void BeforeTestRun()
+        {
+            try
+            {
+                Env.Load();
+                Debug.Log("Entorno: .env cargado.");
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"⚠️ No se pudo cargar .env: {ex.Message}");
+            }
+        }
+
         [BeforeScenario(Order = 0)]
         public void BeforeScenario()
         {
-            var mode = (Environment.GetEnvironmentVariable("EXECUTION_MODE") ?? "PARALLEL").Trim().ToUpperInvariant();
+            var mode = (Environment.GetEnvironmentVariable("EXECUTION_MODE") ?? "PARALLEL")
+                .Trim().ToUpperInvariant();
+
             var browsersEnv = Environment.GetEnvironmentVariable("BROWSERS") ?? "chrome";
             var browsers = browsersEnv
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -64,52 +75,42 @@ namespace SpecFlowSelenium.Helpers
             bool headless = (Environment.GetEnvironmentVariable("HEADLESS") ?? "true")
                 .Trim().ToLowerInvariant() == "true";
 
-            Debug.Log($" [] Escenario '{_context.ScenarioInfo.Title}' con modo: {mode}");
+            Debug.Log($"Escenario: '{_context.ScenarioInfo.Title}'  |  Modo: {mode}  |  Browsers: {string.Join(", ", browsers)}  |  headless={headless}");
 
             if (mode == "MULTI")
             {
-                // ========== MODO MULTI (varios navegadores a la vez) ==========
-                Debug.Log($" - Lanzando navegadores: {string.Join(", ", browsers)}");
-
+                // Lanza TODOS los navegadores y crea el proxy MultiDriver
                 var drivers = new ConcurrentDictionary<string, IWebDriver>();
 
                 Parallel.ForEach(browsers, browser =>
                 {
-                    try
-                    {
-                        var driver = CreateDriver(browser, headless);
-                        drivers[browser] = driver;
-                        Debug.Log($"- {browser} inicializado correctamente.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.Log($"⚠️ Error lanzando {browser}: {ex.Message}");
-                    }
+                    var d = CreateDriver(browser, headless);
+                    drivers[browser] = d;
+                    Debug.Log($"{browser} inicializado para MULTI.");
                 });
 
-                _context["drivers"] = drivers.Values.ToList();
-                _allDrivers = drivers;
+                var multi = new MultiDriver(drivers); // Asegúrate de no tener otra MultiNavigation duplicada (ver nota arriba)
+                CurrentDriver = multi;
 
-                var multiDriver = new MultiDriver(drivers);
-                CurrentDriver = (IWebDriver)multiDriver;
+                // Guarda para cleanup
+                _context["drivers"] = drivers.Values.ToList();
+
+                // Inyección para Steps/Pages
                 _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
 
-                Debug.Log("MultiDriver activo (modo espejo cross-browser).");
+                Debug.Log("MultiDriver activo (espejo cross-browser).");
             }
             else
             {
-                // ========== MODO PARALLEL (1 navegador por escenario) ==========
+                // Un solo navegador por escenario (el primero de la lista)
                 var browser = browsers.First();
-                Debug.Log($"Paralelismo por escenario, navegador: {browser}");
-
                 var driver = CreateDriver(browser, headless);
-                _context["drivers"] = new List<IWebDriver> { driver };
-                _allDrivers = new ConcurrentDictionary<string, IWebDriver>(new[] { new KeyValuePair<string, IWebDriver>(browser, driver) });
-
                 CurrentDriver = driver;
-                _container.RegisterInstanceAs(new DriverContext(driver));
 
-                Debug.Log("Driver individual listo (modo paralelo).");
+                _context["drivers"] = new List<IWebDriver> { driver };
+                _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
+
+                Debug.Log($"Driver '{browser}' listo (PARALLEL).");
             }
         }
 
@@ -118,52 +119,55 @@ namespace SpecFlowSelenium.Helpers
         {
             try
             {
-                if (_context.TryGetValue("drivers", out List<IWebDriver> drivers))
+                if (_context.TryGetValue("drivers", out List<IWebDriver> drivers) && drivers != null)
                 {
-                    Debug.Log($" Cerrando {drivers.Count} navegadores...");
-
-                    Parallel.ForEach(drivers, driver =>
+                    Debug.Log($"Cerrando {drivers.Count} driver(s)...");
+                    Parallel.ForEach(drivers, d =>
                     {
                         try
                         {
-                            driver.Quit();
-                            driver.Dispose();
-                            Debug.Log($"Navegador cerrado correctamente ({driver.GetType().Name})");
+                            d.Quit();
+                            d.Dispose();
                         }
                         catch (Exception ex)
                         {
-                            Debug.Log($"Error cerrando {driver.GetType().Name}: {ex.Message}");
+                            Debug.Log($"⚠️ Error al cerrar driver: {ex.Message}");
                         }
                     });
                 }
-                else
-                {
-                    Debug.Log("No se encontraron drivers en el contexto. Nada que cerrar.");
-                }
+            }
+            finally
+            {
+                _currentDriver.Value = null; // rompe la referencia del ThreadLocal
+                Debug.Log("Limpieza completada.");
+            }
+        }
 
-                // Limpieza adicional (evita ArgumentNullException)
-                _currentDriver.Value = null;
-                _allDrivers.Clear();
-
-                Debug.Log("Limpieza de drivers completada con éxito.");
+        [AfterTestRun(Order = 999)]
+        public static void AfterTestRun()
+        {
+            try
+            {
+                _currentDriver.Dispose(); // libera estructuras del ThreadLocal
+                Debug.Log("ThreadLocal<IWebDriver> liberado tras la test run.");
             }
             catch (Exception ex)
             {
-                Debug.Log($"Error en limpieza de navegadores: {ex.Message}");
+                Debug.Log($"⚠️ Error liberando ThreadLocal: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Crea e inicializa un driver según el navegador indicado.
-        /// Cada driver usa un perfil temporal para evitar conflictos entre hilos.
+        /// Crea el driver con aislamiento de perfil por navegador + escenario + GUID.
+        /// Fail-fast: si falla la creación, aborta con InvalidOperationException.
         /// </summary>
         private IWebDriver CreateDriver(string browserName, bool headless)
         {
             browserName = browserName.ToLowerInvariant().Trim();
 
-            //Aislamiento navegador + escenario + GUID
-            string scenarioSafeName = _context?.ScenarioInfo?.Title ?? "unknown";
-            int scenarioHash = scenarioSafeName.GetHashCode();
+            // Aislamiento total de perfiles temporales
+            string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
+            int scenarioHash = scenarioName.GetHashCode();
             string profile = Path.Combine(
                 Path.GetTempPath(),
                 "wd-profiles",
@@ -171,7 +175,6 @@ namespace SpecFlowSelenium.Helpers
                 scenarioHash.ToString(),
                 $"profile-{Guid.NewGuid()}"
             );
-
             Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
 
             try
@@ -179,51 +182,41 @@ namespace SpecFlowSelenium.Helpers
                 switch (browserName)
                 {
                     case "firefox":
-                        var fopts = new FirefoxOptions();
-                        if (headless) fopts.AddArgument("--headless");
-                        return new FirefoxDriver(fopts);
+                        {
+                            var fopts = new FirefoxOptions();
+                            if (headless) fopts.AddArgument("--headless");
+                            // Firefox maneja su propio perfil; no usamos user-data-dir aquí.
+                            return new FirefoxDriver(fopts);
+                        }
 
                     case "edge":
-                        var eopts = new EdgeOptions();
-                        eopts.AddArgument($"--user-data-dir={profile}");
-                        if (headless) eopts.AddArgument("--headless=new");
-                        eopts.AddArgument("--no-sandbox");
-                        eopts.AddArgument("--disable-dev-shm-usage");
-                        return new EdgeDriver(eopts);
+                        {
+                            var eopts = new EdgeOptions();
+                            eopts.AddArgument($"--user-data-dir={profile}");
+                            if (headless) eopts.AddArgument("--headless=new");
+                            eopts.AddArgument("--no-sandbox");
+                            eopts.AddArgument("--disable-dev-shm-usage");
+                            return new EdgeDriver(eopts);
+                        }
 
                     case "chrome":
                     default:
-                        var copts = new ChromeOptions();
-                        copts.AddArgument($"--user-data-dir={profile}");
-                        if (headless) copts.AddArgument("--headless=new");
-                        copts.AddArgument("--no-sandbox");
-                        copts.AddArgument("--disable-dev-shm-usage");
-                        copts.AddArgument("--disable-gpu");
-                        return new ChromeDriver(copts);
+                        {
+                            var copts = new ChromeOptions();
+                            copts.AddArgument($"--user-data-dir={profile}");
+                            if (headless) copts.AddArgument("--headless=new");
+                            copts.AddArgument("--no-sandbox");
+                            copts.AddArgument("--disable-dev-shm-usage");
+                            copts.AddArgument("--disable-gpu");
+                            return new ChromeDriver(copts);
+                        }
                 }
             }
             catch (Exception ex)
             {
-                //FAIL FAST
-                string msg = $"ERROR: No se pudo iniciar el navegador '{browserName}' — se aborta el escenario.\n{ex.Message}";
+                string msg = $"❌ No se pudo iniciar el navegador '{browserName}'. Se aborta el escenario.\n{ex.Message}";
                 Debug.Log(msg);
-                throw new InvalidOperationException(msg, ex);
-            }
-        }
-
-
-
-        [AfterTestRun(Order = 999)]
-        public static void AfterTestRun()
-        {
-            try
-            {
-                _currentDriver.Dispose();
-                Debug.Log("ThreadLocal<IWebDriver> liberado correctamente tras todos los escenarios.");
-            }
-            catch (Exception ex)
-            {
-                Debug.Log($"Error liberando ThreadLocal: {ex.Message}");
+                throw new InvalidOperationException(msg, ex); // FAIL-FAST
             }
         }
     }
