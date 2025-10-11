@@ -50,7 +50,7 @@ namespace SpecFlowSelenium.Helpers
 
         // Mantiene todos los drivers del escenario
         private static ConcurrentDictionary<string, IWebDriver> _allDrivers = new();
-        private readonly ConcurrentBag<string> _isolatedProfiles = new();
+        private readonly ConcurrentBag<string> _sandboxRoots = new();
 
         public DriverFactory(ScenarioContext context, IObjectContainer container)
         {
@@ -189,20 +189,10 @@ namespace SpecFlowSelenium.Helpers
                 _currentDriver.Value = null;
                 _allDrivers.Clear();
 
-                // Elimina los perfiles temporales usados por los navegadores
-                while (_isolatedProfiles.TryTake(out var profilePath))
+                // Elimina los sandboxes temporales usados por los navegadores
+                while (_sandboxRoots.TryTake(out var sandboxRoot))
                 {
-                    try
-                    {
-                        if (Directory.Exists(profilePath))
-                        {
-                            Directory.Delete(profilePath, true);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.Log($"No se pudo eliminar el perfil temporal '{profilePath}': {ex.Message}");
-                    }
+                    TryDeleteSandbox(sandboxRoot);
                 }
 
                 Debug.Log("Limpieza de drivers completada con éxito.");
@@ -221,38 +211,30 @@ namespace SpecFlowSelenium.Helpers
         {
             browserName = browserName.ToLowerInvariant().Trim();
 
-            string profile = CreateIsolatedProfilePath(browserName);
+            BrowserSandbox? sandbox = null;
 
             try
             {
-                switch (browserName)
+                sandbox = CreateBrowserSandbox(browserName);
+
+                IWebDriver driver = browserName switch
                 {
-                    case "firefox":
-                        var fopts = new FirefoxOptions();
-                        if (headless) fopts.AddArgument("--headless");
-                        return new FirefoxDriver(fopts);
+                    "firefox" => CreateFirefoxDriver(headless, sandbox),
+                    "edge" => CreateEdgeDriver(headless, sandbox),
+                    "chrome" or _ => CreateChromeDriver(headless, sandbox)
+                };
 
-                    case "edge":
-                        var eopts = new EdgeOptions();
-                        eopts.AddArgument($"--user-data-dir={profile}");
-                        if (headless) eopts.AddArgument("--headless=new");
-                        eopts.AddArgument("--no-sandbox");
-                        eopts.AddArgument("--disable-dev-shm-usage");
-                        return new EdgeDriver(eopts);
+                _sandboxRoots.Add(sandbox.RootPath);
 
-                    case "chrome":
-                    default:
-                        var copts = new ChromeOptions();
-                        copts.AddArgument($"--user-data-dir={profile}");
-                        if (headless) copts.AddArgument("--headless=new");
-                        copts.AddArgument("--no-sandbox");
-                        copts.AddArgument("--disable-dev-shm-usage");
-                        copts.AddArgument("--disable-gpu");
-                        return new ChromeDriver(copts);
-                }
+                return driver;
             }
             catch (Exception ex)
             {
+                if (sandbox is not null)
+                {
+                    TryDeleteSandbox(sandbox.RootPath);
+                }
+
                 //FAIL FAST
                 string msg = $"ERROR: No se pudo iniciar el navegador '{browserName}' — se aborta el escenario.\n{ex.Message}";
                 Debug.Log(msg);
@@ -260,23 +242,103 @@ namespace SpecFlowSelenium.Helpers
             }
         }
 
-        private string CreateIsolatedProfilePath(string browserName)
+        private BrowserSandbox CreateBrowserSandbox(string browserName)
         {
             string uniqueSegment = string.Join(
                 "_",
                 DateTime.UtcNow.ToString("yyyyMMddHHmmssfff"),
                 Environment.ProcessId,
-                Thread.CurrentThread.ManagedThreadId,
+                Environment.CurrentManagedThreadId,
                 Guid.NewGuid().ToString("N")
             );
 
-            string profile = Path.Combine(Path.GetTempPath(), "wd-profiles", browserName, uniqueSegment);
+            string rootPath = Path.Combine(Path.GetTempPath(), "wd-sandboxes", browserName, uniqueSegment);
+            string profilePath = Path.Combine(rootPath, "profile");
+            string driverArtifactsPath = Path.Combine(rootPath, "driver-service");
 
-            Directory.CreateDirectory(profile);
-            _isolatedProfiles.Add(profile);
+            Directory.CreateDirectory(profilePath);
+            Directory.CreateDirectory(driverArtifactsPath);
 
-            return profile;
+            return new BrowserSandbox(rootPath, profilePath, driverArtifactsPath);
         }
+
+        private IWebDriver CreateChromeDriver(bool headless, BrowserSandbox sandbox)
+        {
+            var options = new ChromeOptions();
+            options.AddArgument($"--user-data-dir={sandbox.ProfilePath}");
+            options.AddArgument($"--profile-directory=Profile-{Guid.NewGuid():N}");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--remote-debugging-port=0");
+            options.AddArgument("--no-first-run");
+            options.AddArgument("--no-default-browser-check");
+            if (headless)
+            {
+                options.AddArgument("--headless=new");
+            }
+
+            var service = ChromeDriverService.CreateDefaultService();
+            service.Port = 0;
+            service.EnableAppendLog = true;
+            service.LogPath = Path.Combine(sandbox.DriverArtifactsPath, $"chromedriver-{Guid.NewGuid():N}.log");
+
+            return new ChromeDriver(service, options);
+        }
+
+        private IWebDriver CreateEdgeDriver(bool headless, BrowserSandbox sandbox)
+        {
+            var options = new EdgeOptions();
+            options.AddArgument($"--user-data-dir={sandbox.ProfilePath}");
+            options.AddArgument($"--profile-directory=Profile-{Guid.NewGuid():N}");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--remote-debugging-port=0");
+            if (headless)
+            {
+                options.AddArgument("--headless=new");
+            }
+
+            var service = EdgeDriverService.CreateDefaultService();
+            service.Port = 0;
+            service.LogPath = Path.Combine(sandbox.DriverArtifactsPath, $"edgedriver-{Guid.NewGuid():N}.log");
+
+            return new EdgeDriver(service, options);
+        }
+
+        private IWebDriver CreateFirefoxDriver(bool headless, BrowserSandbox sandbox)
+        {
+            var options = new FirefoxOptions();
+            if (headless)
+            {
+                options.AddArgument("--headless");
+            }
+            options.AddArguments("-profile", sandbox.ProfilePath);
+
+            var service = FirefoxDriverService.CreateDefaultService();
+            service.Host = "127.0.0.1";
+            service.Port = 0;
+            service.LogFile = Path.Combine(sandbox.DriverArtifactsPath, $"geckodriver-{Guid.NewGuid():N}.log");
+
+            return new FirefoxDriver(service, options);
+        }
+
+        private static void TryDeleteSandbox(string rootPath)
+        {
+            try
+            {
+                if (Directory.Exists(rootPath))
+                {
+                    Directory.Delete(rootPath, true);
+                }
+            }
+            catch (Exception cleanupEx)
+            {
+                Debug.Log($"No se pudo limpiar el sandbox temporal '{rootPath}': {cleanupEx.Message}");
+            }
+        }
+
+        private sealed record BrowserSandbox(string RootPath, string ProfilePath, string DriverArtifactsPath);
 
 
 
