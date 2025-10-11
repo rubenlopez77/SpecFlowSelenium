@@ -6,6 +6,9 @@ using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Firefox;
 using SpecFlowLogin.Helpers.DebugTools;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using TechTalk.SpecFlow;
 
 namespace SpecFlowSelenium.Helpers
@@ -87,11 +90,48 @@ namespace SpecFlowSelenium.Helpers
                     }
                 });
 
-                _context["drivers"] = drivers.Values.ToList();
-                _allDrivers = drivers;
+                var successfulDrivers = drivers
+                    .Where(kvp => kvp.Value is not null)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-                var multiDriver = new MultiDriver(drivers);
-                CurrentDriver = (IWebDriver)multiDriver;
+                if (successfulDrivers.Count == 0)
+                {
+                    Debug.Log("⚠️ No se pudo iniciar ningún navegador en modo MULTI. Se intentará un fallback a Chrome en modo individual.");
+
+                    try
+                    {
+                        const string fallbackBrowser = "chrome";
+                        var fallbackDriver = CreateDriver(fallbackBrowser, headless);
+
+                        _context["drivers"] = new List<IWebDriver> { fallbackDriver };
+                        _allDrivers = new ConcurrentDictionary<string, IWebDriver>(new[]
+                        {
+                            new KeyValuePair<string, IWebDriver>(fallbackBrowser, fallbackDriver)
+                        });
+
+                        CurrentDriver = fallbackDriver;
+                        _container.RegisterInstanceAs(new DriverContext(fallbackDriver));
+
+                        Debug.Log("Fallback a modo paralelo con Chrome completado.");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(
+                            "No se pudo iniciar ningún navegador en modo MULTI ni completar el fallback a Chrome.",
+                            ex
+                        );
+                    }
+
+                    return;
+                }
+
+                var readOnlyDrivers = new ReadOnlyDictionary<string, IWebDriver>(successfulDrivers);
+
+                _context["drivers"] = readOnlyDrivers.Values.ToList();
+                _allDrivers = new ConcurrentDictionary<string, IWebDriver>(successfulDrivers);
+
+                var multiDriver = new MultiDriver(readOnlyDrivers);
+                CurrentDriver = multiDriver;
                 _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
 
                 Debug.Log("MultiDriver activo (modo espejo cross-browser).");

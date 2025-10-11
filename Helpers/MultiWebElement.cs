@@ -16,6 +16,15 @@ namespace SpecFlowSelenium.Helpers
 
         public MultiWebElement(IReadOnlyDictionary<string, IWebElement> elements)
         {
+            if (elements is null)
+                throw new ArgumentNullException(nameof(elements));
+
+            if (elements.Count == 0)
+                throw new InvalidOperationException(
+                    "MultiWebElement requiere al menos un IWebElement activo. " +
+                    "Asegúrate de que los navegadores se hayan inicializado correctamente."
+                );
+
             _elements = elements;
         }
 

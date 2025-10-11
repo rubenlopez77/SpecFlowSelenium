@@ -12,6 +12,15 @@ namespace SpecFlowSelenium.Helpers
 
         public MultiDriver(IReadOnlyDictionary<string, IWebDriver> drivers)
         {
+            if (drivers is null)
+                throw new ArgumentNullException(nameof(drivers));
+
+            if (drivers.Count == 0)
+                throw new InvalidOperationException(
+                    "MultiDriver requiere al menos un IWebDriver operativo. " +
+                    "Revisa la configuración de los navegadores disponibles."
+                );
+
             _drivers = drivers;
         }
 
