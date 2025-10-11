@@ -161,6 +161,13 @@ namespace SpecFlowSelenium.Helpers
         {
             browserName = browserName.ToLowerInvariant().Trim();
 
+            // Directorio de perfil único por thread y tiempo
+            string profileDir = Path.Combine(
+                Path.GetTempPath(),
+                "wd-profiles",
+                $"{browserName}-{Thread.CurrentThread.ManagedThreadId}-{DateTime.Now:HHmmssfff}"
+            );
+
             try
             {
                 switch (browserName)
@@ -175,22 +182,44 @@ namespace SpecFlowSelenium.Helpers
                             fopts.AddArgument("--no-sandbox");
                             fopts.AddArgument("--disable-dev-shm-usage");
                             fopts.AddArgument("--disable-gpu");
-                            fopts.SetPreference("browser.startup.homepage", "about:blank");
-                            fopts.SetPreference("startup.homepage_welcome_url", "about:blank");
-                            fopts.SetPreference("startup.homepage_welcome_url.additional", "about:blank");
+                            fopts.SetPreference("dom.ipc.processCount", 1);
                             fopts.AcceptInsecureCertificates = true;
 
-                            // Timeout aumentado para CI
+                            // Timeouts aumentados para CI
                             var service = FirefoxDriverService.CreateDefaultService();
                             service.HideCommandPromptWindow = true;
 
-                            return new FirefoxDriver(service, fopts, TimeSpan.FromSeconds(120));
+                            return new FirefoxDriver(service, fopts, TimeSpan.FromSeconds(60));
                         }
+                    //case "edge":
+                    //    {
+                    //        var eopts = new EdgeOptions();
+
+                    //        // Directorio de perfil único
+                    //        eopts.AddArgument($"--user-data-dir={profileDir}");
+                    //        if (headless)
+                    //            eopts.AddArgument("--headless=new");
+
+                    //        // Opciones para CI
+                    //        eopts.AddArgument("--no-sandbox");
+                    //        eopts.AddArgument("--disable-dev-shm-usage");
+                    //        eopts.AddArgument("--disable-gpu");
+                    //        eopts.AddArgument("--disable-extensions");
+                    //        eopts.AddArgument("--remote-debugging-port=0");
+                    //        eopts.AcceptInsecureCertificates = true;
+
+                    //        var service = EdgeDriverService.CreateDefaultService();
+                    //        service.HideCommandPromptWindow = true;
+
+                    //        return new EdgeDriver(service, eopts, TimeSpan.FromSeconds(60));
+                    //    }
                     case "chrome":
                     default:
                         {
                             var copts = new ChromeOptions();
 
+                            // Directorio de perfil único
+                            copts.AddArgument($"--user-data-dir={profileDir}");
                             if (headless)
                                 copts.AddArgument("--headless=new");
 
@@ -204,20 +233,23 @@ namespace SpecFlowSelenium.Helpers
                             copts.AddArgument("--disable-background-timer-throttling");
                             copts.AddArgument("--disable-backgrounding-occluded-windows");
                             copts.AddArgument("--disable-renderer-backgrounding");
-                            copts.AddArgument("--window-size=1920,1080");
                             copts.AcceptInsecureCertificates = true;
 
                             var service = ChromeDriverService.CreateDefaultService();
                             service.HideCommandPromptWindow = true;
 
-                            return new ChromeDriver(service, copts, TimeSpan.FromSeconds(120));
+                            return new ChromeDriver(service, copts, TimeSpan.FromSeconds(60));
                         }
                 }
             }
             catch (Exception ex)
             {
-                string msg = $"❌ No se pudo iniciar '{browserName}'. Error: {ex.Message}";
+                string msg = $"❌ No se pudo iniciar el navegador '{browserName}'. Se aborta el escenario.\n{ex.Message}";
                 Debug.Log(msg);
+
+                // Limpiar directorio temporal si existe
+                try { Directory.Delete(profileDir, true); } catch { }
+
                 throw new InvalidOperationException(msg, ex);
             }
         }
