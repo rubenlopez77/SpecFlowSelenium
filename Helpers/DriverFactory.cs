@@ -161,38 +161,57 @@ namespace SpecFlowSelenium.Helpers
         {
             browserName = browserName.ToLowerInvariant().Trim();
 
-            string profile = Path.Combine(Path.GetTempPath(),
-                $"wd-profile-{browserName}-{Guid.NewGuid()}-{_context.ScenarioInfo.Title.GetHashCode()}"
-);
+            //Aislamiento navegador + escenario + GUID
+            string scenarioSafeName = _context?.ScenarioInfo?.Title ?? "unknown";
+            int scenarioHash = scenarioSafeName.GetHashCode();
+            string profile = Path.Combine(
+                Path.GetTempPath(),
+                "wd-profiles",
+                browserName,
+                scenarioHash.ToString(),
+                $"profile-{Guid.NewGuid()}"
+            );
 
-            switch (browserName)
+            Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
+
+            try
             {
-                case "firefox":
-                    var fopts = new FirefoxOptions();
-                    if (headless) fopts.AddArgument("--headless");
-                    return new FirefoxDriver(fopts);
+                switch (browserName)
+                {
+                    case "firefox":
+                        var fopts = new FirefoxOptions();
+                        if (headless) fopts.AddArgument("--headless");
+                        return new FirefoxDriver(fopts);
 
-                case "edge":
-                    var eopts = new EdgeOptions();
-                    eopts.AddArgument($"--user-data-dir={profile}");
-                    if (headless) eopts.AddArgument("--headless=new");
-                    eopts.AddArgument("--no-sandbox");
-                    eopts.AddArgument("--disable-dev-shm-usage");
-                    return new EdgeDriver(eopts);
+                    case "edge":
+                        var eopts = new EdgeOptions();
+                        eopts.AddArgument($"--user-data-dir={profile}");
+                        if (headless) eopts.AddArgument("--headless=new");
+                        eopts.AddArgument("--no-sandbox");
+                        eopts.AddArgument("--disable-dev-shm-usage");
+                        return new EdgeDriver(eopts);
 
-                case "chrome":
-                default:
-                    var copts = new ChromeOptions();
-
-                    if (Environment.GetEnvironmentVariable("EXECUTION_MODE") == "MULTI")
+                    case "chrome":
+                    default:
+                        var copts = new ChromeOptions();
                         copts.AddArgument($"--user-data-dir={profile}");
-                    if (headless) copts.AddArgument("--headless=new");
-                    copts.AddArgument("--no-sandbox");
-                    copts.AddArgument("--disable-dev-shm-usage");
-                    copts.AddArgument("--disable-gpu");
-                    return new ChromeDriver(copts);
+                        if (headless) copts.AddArgument("--headless=new");
+                        copts.AddArgument("--no-sandbox");
+                        copts.AddArgument("--disable-dev-shm-usage");
+                        copts.AddArgument("--disable-gpu");
+                        return new ChromeDriver(copts);
+                }
+            }
+            catch (Exception ex)
+            {
+                //FAIL FAST
+                string msg = $"ERROR: No se pudo iniciar el navegador '{browserName}' — se aborta el escenario.\n{ex.Message}";
+                Debug.Log(msg);
+                throw new InvalidOperationException(msg, ex);
             }
         }
+
+
 
         [AfterTestRun(Order = 999)]
         public static void AfterTestRun()
