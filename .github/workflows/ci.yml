@@ -30,11 +30,9 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        working-directory: .
         run: dotnet restore
 
       - name: Run parallel tests
-        working-directory: SpecFlowSelenium
         run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Parallel.trx"
 
       - name: Upload test results
@@ -65,11 +63,9 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        working-directory: .
         run: dotnet restore
 
       - name: Run multi-browser tests
-        working-directory: SpecFlowSelenium
         run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=Multi.trx"
 
       - name: Upload multi-browser results

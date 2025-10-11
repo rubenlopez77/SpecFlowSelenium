@@ -1,16 +1,12 @@
 ﻿using OpenQA.Selenium;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SpecFlowSelenium.Helpers
 {
     /// <summary>
     /// Driver proxy que replica las acciones de WebDriver en varios navegadores simultáneamente.
     /// </summary>
-    public class MultiDriver : OpenQA.Selenium.IWebDriver
+    public class MultiDriver : IWebDriver
     {
         private readonly IReadOnlyDictionary<string, IWebDriver> _drivers;
 
