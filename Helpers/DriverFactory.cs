@@ -166,16 +166,16 @@ namespace SpecFlowSelenium.Helpers
             browserName = browserName.ToLowerInvariant().Trim();
 
             // Aislamiento total de perfiles temporales
-            string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
-            int scenarioHash = scenarioName.GetHashCode();
-            string profile = Path.Combine(
-                Path.GetTempPath(),
-                "wd-profiles",
-                browserName,
-                scenarioHash.ToString(),
-                $"profile-{Guid.NewGuid()}"
-            );
-            Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
+            //string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
+            //int scenarioHash = scenarioName.GetHashCode();
+            //string profile = Path.Combine(
+            //    Path.GetTempPath(),
+            //    "wd-profiles",
+            //    browserName,
+            //    scenarioHash.ToString(),
+            //    $"profile-{Guid.NewGuid()}"
+            //);
+            //Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
 
             try
             {
@@ -192,7 +192,7 @@ namespace SpecFlowSelenium.Helpers
                     case "edge":
                         {
                             var eopts = new EdgeOptions();
-                            eopts.AddArgument($"--user-data-dir={profile}");
+                            //eopts.AddArgument($"--user-data-dir={profile}");
                             if (headless) eopts.AddArgument("--headless=new");
                             eopts.AddArgument("--no-sandbox");
                             eopts.AddArgument("--disable-dev-shm-usage");
@@ -203,7 +203,7 @@ namespace SpecFlowSelenium.Helpers
                     default:
                         {
                             var copts = new ChromeOptions();
-                            copts.AddArgument($"--user-data-dir={profile}");
+                            //copts.AddArgument($"--user-data-dir={profile}");
                             if (headless) copts.AddArgument("--headless=new");
                             copts.AddArgument("--no-sandbox");
                             copts.AddArgument("--disable-dev-shm-usage");
