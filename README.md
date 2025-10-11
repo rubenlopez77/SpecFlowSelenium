@@ -5,7 +5,7 @@
 **⚠️ Prueba de concepto (PoC)** — Este proyecto se utiliza únicamente para **experimentar con ejecución paralela y multi-navegador** usando **SpecFlow + Selenium**.  
 Su propósito es probar la robustez, el aislamiento de contextos y la eficiencia en pipelines CI/CD. No está destinado a entornos productivos.
 
-Current version: **v0.0.1**
+Current version: **v0.0.0**
 
 
 ---

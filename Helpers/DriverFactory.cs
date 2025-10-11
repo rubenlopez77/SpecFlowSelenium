@@ -11,7 +11,7 @@ using OpenQA.Selenium.Firefox;
 using TechTalk.SpecFlow;
 using NUnit.Framework;
 using SpecFlowLogin.Helpers.DebugTools; 
-using DotNetEnv; 
+using DotNetEnv;
 
 namespace SpecFlowSelenium.Helpers
 {
@@ -166,16 +166,17 @@ namespace SpecFlowSelenium.Helpers
             browserName = browserName.ToLowerInvariant().Trim();
 
             // Aislamiento total de perfiles temporales
-            //string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
-            //int scenarioHash = scenarioName.GetHashCode();
-            //string profile = Path.Combine(
-            //    Path.GetTempPath(),
-            //    "wd-profiles",
-            //    browserName,
-            //    scenarioHash.ToString(),
-            //    $"profile-{Guid.NewGuid()}"
-            //);
-            //Directory.CreateDirectory(Path.GetDirectoryName(profile)!);
+            string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
+            int scenarioHash = Math.Abs(scenarioName.GetHashCode());
+            string profile = Path.Combine(
+                Path.GetTempPath(),
+                "wd-profiles",
+                browserName,
+                scenarioHash.ToString(),
+                $"profile-{Guid.NewGuid()}"
+            );
+
+            Directory.CreateDirectory(profile);
 
             try
             {
@@ -185,17 +186,18 @@ namespace SpecFlowSelenium.Helpers
                         {
                             var fopts = new FirefoxOptions();
                             if (headless) fopts.AddArgument("--headless");
-                            // Firefox maneja su propio perfil; no usamos user-data-dir aquí.
+                            fopts.AddArgument($"--profile={profile}");
                             return new FirefoxDriver(fopts);
                         }
 
                     case "edge":
                         {
                             var eopts = new EdgeOptions();
-                            //eopts.AddArgument($"--user-data-dir={profile}");
+                            eopts.AddArgument($"--user-data-dir={profile}");
                             if (headless) eopts.AddArgument("--headless=new");
                             eopts.AddArgument("--no-sandbox");
                             eopts.AddArgument("--disable-dev-shm-usage");
+                            eopts.AddArgument("--disable-gpu");
                             return new EdgeDriver(eopts);
                         }
 
@@ -203,11 +205,13 @@ namespace SpecFlowSelenium.Helpers
                     default:
                         {
                             var copts = new ChromeOptions();
-                            //copts.AddArgument($"--user-data-dir={profile}");
+                            copts.AddArgument($"--user-data-dir={profile}");
                             if (headless) copts.AddArgument("--headless=new");
                             copts.AddArgument("--no-sandbox");
                             copts.AddArgument("--disable-dev-shm-usage");
                             copts.AddArgument("--disable-gpu");
+                            copts.AddArgument("--disable-extensions");
+                            copts.AddArgument("--remote-debugging-port=0"); // evita conflictos de puertos
                             return new ChromeDriver(copts);
                         }
                 }
@@ -217,6 +221,24 @@ namespace SpecFlowSelenium.Helpers
                 string msg = $"❌ No se pudo iniciar el navegador '{browserName}'. Se aborta el escenario.\n{ex.Message}";
                 Debug.Log(msg);
                 throw new InvalidOperationException(msg, ex); // FAIL-FAST
+            }
+        }
+        // Limpia perfiles temporales tras cada escenario (opcional)
+        [AfterScenario(Order = 1)]
+        public void CleanupProfiles()
+        {
+            try
+            {
+                var tempRoot = Path.Combine(Path.GetTempPath(), "wd-profiles");
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, recursive: true);
+                    Debug.Log("Perfiles temporales limpiados tras escenario.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"⚠️ Error limpiando perfiles: {ex.Message}");
             }
         }
     }

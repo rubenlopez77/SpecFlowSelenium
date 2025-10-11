@@ -30,13 +30,16 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Restore dependencies
         run: dotnet restore SpecFlowSelenium.sln
 
       - name: Build
         run: dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run tests (Chrome only)
         run: dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
       - name: Publish test results
@@ -45,7 +48,7 @@ jobs:
         with:
           name: TestResults
           path: '**/TestResults/*.trx'
-       
+
 
   # ==================================
   # JOB MANUAL: Cross-Browser MultiDriver
@@ -69,13 +72,32 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Instala navegadores y drivers
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Setup Firefox
+        uses: browser-actions/setup-firefox@v1
+
+      - name: Setup Edge
+        uses: browser-actions/setup-edge@v1
+
+      - name: Verificar versiones de drivers
+        run: |
+          google-chrome --version
+          chromedriver --version || echo "⚠️ chromedriver no encontrado"
+          firefox --version
+          geckodriver --version || echo "⚠️ geckodriver no encontrado"
+          microsoft-edge --version
+          msedgedriver --version || echo "⚠️ msedgedriver no encontrado"
+
       - name: Restore dependencies
         run: dotnet restore SpecFlowSelenium.sln
 
       - name: Build
         run: dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run cross-browser tests
         run: dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
       - name: Publish test results
@@ -84,4 +106,3 @@ jobs:
         with:
           name: TestResults
           path: '**/TestResults/*.trx'
-       
