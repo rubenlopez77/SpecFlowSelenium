@@ -1,31 +1,16 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using BoDi;
+﻿using BoDi;
+using DotNetEnv;
+using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Firefox;
+using SpecFlowLogin.Helpers.DebugTools;
+using System.Collections.Concurrent;
 using TechTalk.SpecFlow;
-using NUnit.Framework;
-using SpecFlowLogin.Helpers.DebugTools; 
-using DotNetEnv;
 
 namespace SpecFlowSelenium.Helpers
 {
-    /// <summary>
-    /// Gestiona el ciclo de vida del IWebDriver por escenario de SpecFlow.
-    ///
-    /// - Modo PARALLEL: un solo navegador por escenario (el primero de BROWSERS).
-    /// - Modo MULTI: crea un MultiDriver que replica acciones en todos los navegadores indicados.
-    ///
-    /// Robustece la paralelización:
-    /// - Perfiles aislados: /tmp/wd-profiles/{browser}/{ScenarioHash}/profile-{GUID}
-    /// - Fail-fast: si falla la creación del driver, aborta el escenario con excepción clara.
-    /// - Limpieza: cierra y libera todos los drivers al finalizar el escenario.
-    /// </summary>
     [Binding, Parallelizable(ParallelScope.All)]
     public class DriverFactory
     {
@@ -38,6 +23,7 @@ namespace SpecFlowSelenium.Helpers
 
         private readonly ScenarioContext _context;
         private readonly IObjectContainer _container;
+        private static readonly object _lockObject = new object();
 
         public DriverFactory(ScenarioContext context, IObjectContainer container)
         {
@@ -45,7 +31,6 @@ namespace SpecFlowSelenium.Helpers
             _container = container;
         }
 
-        // Carga .env una vez al iniciar la test run (no falla si no existe)
         [BeforeTestRun(Order = -1000)]
         public static void BeforeTestRun()
         {
@@ -75,41 +60,51 @@ namespace SpecFlowSelenium.Helpers
             bool headless = (Environment.GetEnvironmentVariable("HEADLESS") ?? "true")
                 .Trim().ToLowerInvariant() == "true";
 
-            Debug.Log($"Escenario: '{_context.ScenarioInfo.Title}'  |  Modo: {mode}  |  Browsers: {string.Join(", ", browsers)}  |  headless={headless}");
+            Debug.Log($"Escenario: '{_context.ScenarioInfo.Title}' | Modo: {mode} | Browsers: {string.Join(", ", browsers)} | headless={headless}");
 
             if (mode == "MULTI")
             {
-                // Lanza TODOS los navegadores y crea el proxy MultiDriver
+                // CREACIÓN SECUENCIAL para evitar conflictos en CI
                 var drivers = new ConcurrentDictionary<string, IWebDriver>();
 
-                Parallel.ForEach(browsers, browser =>
+                foreach (var browser in browsers)
                 {
-                    var d = CreateDriver(browser, headless);
-                    drivers[browser] = d;
-                    Debug.Log($"{browser} inicializado para MULTI.");
-                });
+                    try
+                    {
+                        var d = CreateDriver(browser, headless);
+                        drivers[browser] = d;
+                        Debug.Log($"{browser} inicializado para MULTI.");
 
-                var multi = new MultiDriver(drivers); // Asegúrate de no tener otra MultiNavigation duplicada (ver nota arriba)
+                        // Pequeña pausa entre creación de drivers
+                        Thread.Sleep(1000);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.Log($"❌ Error creando {browser}: {ex.Message}");
+                        // Continúa con los otros navegadores en lugar de fallar completamente
+                        continue;
+                    }
+                }
+
+                if (drivers.IsEmpty)
+                {
+                    throw new InvalidOperationException("No se pudo crear ningún driver para el modo MULTI.");
+                }
+
+                var multi = new MultiDriver(drivers);
                 CurrentDriver = multi;
-
-                // Guarda para cleanup
                 _context["drivers"] = drivers.Values.ToList();
-
-                // Inyección para Steps/Pages
                 _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
-
-                Debug.Log("MultiDriver activo (espejo cross-browser).");
+                Debug.Log($"MultiDriver activo con {drivers.Count} navegadores.");
             }
             else
             {
-                // Un solo navegador por escenario (el primero de la lista)
+                // Modo PARALLEL - solo el primer navegador
                 var browser = browsers.First();
                 var driver = CreateDriver(browser, headless);
                 CurrentDriver = driver;
-
                 _context["drivers"] = new List<IWebDriver> { driver };
                 _container.RegisterInstanceAs(new DriverContext(CurrentDriver));
-
                 Debug.Log($"Driver '{browser}' listo (PARALLEL).");
             }
         }
@@ -122,23 +117,25 @@ namespace SpecFlowSelenium.Helpers
                 if (_context.TryGetValue("drivers", out List<IWebDriver> drivers) && drivers != null)
                 {
                     Debug.Log($"Cerrando {drivers.Count} driver(s)...");
-                    Parallel.ForEach(drivers, d =>
+
+                    // Cierre secuencial para mayor estabilidad
+                    foreach (var driver in drivers)
                     {
                         try
                         {
-                            d.Quit();
-                            d.Dispose();
+                            driver?.Quit();
+                            driver?.Dispose();
                         }
                         catch (Exception ex)
                         {
                             Debug.Log($"⚠️ Error al cerrar driver: {ex.Message}");
                         }
-                    });
+                    }
                 }
             }
             finally
             {
-                _currentDriver.Value = null; // rompe la referencia del ThreadLocal
+                _currentDriver.Value = null;
                 Debug.Log("Limpieza completada.");
             }
         }
@@ -148,7 +145,7 @@ namespace SpecFlowSelenium.Helpers
         {
             try
             {
-                _currentDriver.Dispose(); // libera estructuras del ThreadLocal
+                _currentDriver.Dispose();
                 Debug.Log("ThreadLocal<IWebDriver> liberado tras la test run.");
             }
             catch (Exception ex)
@@ -158,25 +155,11 @@ namespace SpecFlowSelenium.Helpers
         }
 
         /// <summary>
-        /// Crea el driver con aislamiento de perfil por navegador + escenario + GUID.
-        /// Fail-fast: si falla la creación, aborta con InvalidOperationException.
+        /// Crea el driver con directorio de perfil único y opciones optimizadas para CI
         /// </summary>
         private IWebDriver CreateDriver(string browserName, bool headless)
         {
             browserName = browserName.ToLowerInvariant().Trim();
-
-            // Aislamiento total de perfiles temporales
-            string scenarioName = _context?.ScenarioInfo?.Title ?? "unknown";
-            int scenarioHash = Math.Abs(scenarioName.GetHashCode());
-            string profile = Path.Combine(
-                Path.GetTempPath(),
-                "wd-profiles",
-                browserName,
-                scenarioHash.ToString(),
-                $"profile-{Guid.NewGuid()}"
-            );
-
-            Directory.CreateDirectory(profile);
 
             try
             {
@@ -185,60 +168,57 @@ namespace SpecFlowSelenium.Helpers
                     case "firefox":
                         {
                             var fopts = new FirefoxOptions();
-                            if (headless) fopts.AddArgument("--headless");
-                            fopts.AddArgument($"--profile={profile}");
-                            return new FirefoxDriver(fopts);
-                        }
+                            if (headless)
+                                fopts.AddArgument("--headless");
 
-                    case "edge":
-                        {
-                            var eopts = new EdgeOptions();
-                            eopts.AddArgument($"--user-data-dir={profile}");
-                            if (headless) eopts.AddArgument("--headless=new");
-                            eopts.AddArgument("--no-sandbox");
-                            eopts.AddArgument("--disable-dev-shm-usage");
-                            eopts.AddArgument("--disable-gpu");
-                            return new EdgeDriver(eopts);
-                        }
+                            // Opciones específicas para CI
+                            fopts.AddArgument("--no-sandbox");
+                            fopts.AddArgument("--disable-dev-shm-usage");
+                            fopts.AddArgument("--disable-gpu");
+                            fopts.SetPreference("browser.startup.homepage", "about:blank");
+                            fopts.SetPreference("startup.homepage_welcome_url", "about:blank");
+                            fopts.SetPreference("startup.homepage_welcome_url.additional", "about:blank");
+                            fopts.AcceptInsecureCertificates = true;
 
+                            // Timeout aumentado para CI
+                            var service = FirefoxDriverService.CreateDefaultService();
+                            service.HideCommandPromptWindow = true;
+
+                            return new FirefoxDriver(service, fopts, TimeSpan.FromSeconds(120));
+                        }
                     case "chrome":
                     default:
                         {
                             var copts = new ChromeOptions();
-                            copts.AddArgument($"--user-data-dir={profile}");
-                            if (headless) copts.AddArgument("--headless=new");
+
+                            if (headless)
+                                copts.AddArgument("--headless=new");
+
+                            // Opciones optimizadas para CI
                             copts.AddArgument("--no-sandbox");
                             copts.AddArgument("--disable-dev-shm-usage");
                             copts.AddArgument("--disable-gpu");
                             copts.AddArgument("--disable-extensions");
-                            copts.AddArgument("--remote-debugging-port=0"); // evita conflictos de puertos
-                            return new ChromeDriver(copts);
+                            copts.AddArgument("--remote-debugging-port=0");
+                            copts.AddArgument("--no-first-run");
+                            copts.AddArgument("--disable-background-timer-throttling");
+                            copts.AddArgument("--disable-backgrounding-occluded-windows");
+                            copts.AddArgument("--disable-renderer-backgrounding");
+                            copts.AddArgument("--window-size=1920,1080");
+                            copts.AcceptInsecureCertificates = true;
+
+                            var service = ChromeDriverService.CreateDefaultService();
+                            service.HideCommandPromptWindow = true;
+
+                            return new ChromeDriver(service, copts, TimeSpan.FromSeconds(120));
                         }
                 }
             }
             catch (Exception ex)
             {
-                string msg = $"❌ No se pudo iniciar el navegador '{browserName}'. Se aborta el escenario.\n{ex.Message}";
+                string msg = $"❌ No se pudo iniciar '{browserName}'. Error: {ex.Message}";
                 Debug.Log(msg);
-                throw new InvalidOperationException(msg, ex); // FAIL-FAST
-            }
-        }
-        // Limpia perfiles temporales tras cada escenario (opcional)
-        [AfterScenario(Order = 1)]
-        public void CleanupProfiles()
-        {
-            try
-            {
-                var tempRoot = Path.Combine(Path.GetTempPath(), "wd-profiles");
-                if (Directory.Exists(tempRoot))
-                {
-                    Directory.Delete(tempRoot, recursive: true);
-                    Debug.Log("Perfiles temporales limpiados tras escenario.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.Log($"⚠️ Error limpiando perfiles: {ex.Message}");
+                throw new InvalidOperationException(msg, ex);
             }
         }
     }

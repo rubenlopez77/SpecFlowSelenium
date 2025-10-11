@@ -152,3 +152,10 @@ Este proyecto es una **prueba de concepto experimental** centrada en el aprendiz
 **Nota:**  
 El modo `MULTI` es **experimental** consume más recursos, ya que ejecuta múltiples navegadores en espejo.  
 Usar preferentemente `PARALLEL` para regresiones continuas y reservar `MULTI` para validación cross-browser o compatibilidad visual.
+
+
+🧰 Troubleshooting
+⚠️ Edge browser issues on GitHub Actions (Ubuntu runners)
+
+When running cross-browser SpecFlow + Selenium tests in GitHub Actions using the
+ubuntu-latest runner, you may encounter errors when launching Microsoft Edge.

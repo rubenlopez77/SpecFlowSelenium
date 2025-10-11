@@ -5,16 +5,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # permite ejecución manual
+  workflow_dispatch:  # ejecución manual
 
 jobs:
   # ==================================
-  # JOB AUTOMÁTICO: Parallel Scenarios
+  # JOB AUTOMÁTICO: Parallel Scenarios (Chrome)
   # ==================================
   parallel_tests:
     name: 🧩 Parallel Scenarios (Chrome)
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'  # solo si no es ejecución manual
+    if: github.event_name != 'workflow_dispatch'
 
     env:
       EXECUTION_MODE: PARALLEL
@@ -22,25 +22,17 @@ jobs:
       HEADLESS: true
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - uses: browser-actions/setup-chrome@v1
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Restore dependencies
-        run: dotnet restore SpecFlowSelenium.sln
-
-      - name: Build
-        run: dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
-
-      - name: Run tests (Chrome only)
-        run: dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+      - name: Build and test
+        run: |
+          dotnet restore SpecFlowSelenium.sln
+          dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
       - name: Publish test results
         if: always()
@@ -56,53 +48,30 @@ jobs:
   multi_tests:
     name: 🌐 Cross-Browser MultiDriver
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'  # solo si se lanza manualmente
+    if: github.event_name == 'workflow_dispatch'
 
     env:
       EXECUTION_MODE: MULTI
-      BROWSERS: chrome,firefox,edge
+      BROWSERS: chrome,firefox
       HEADLESS: true
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-firefox@v1
 
-      # Instala navegadores y drivers
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Setup Firefox
-        uses: browser-actions/setup-firefox@v1
-
-      - name: Setup Edge
-        uses: browser-actions/setup-edge@v1
-
-      - name: Verificar versiones de drivers
+      - name: Build and test (multi-browser)
         run: |
-          google-chrome --version
-          chromedriver --version || echo "⚠️ chromedriver no encontrado"
-          firefox --version
-          geckodriver --version || echo "⚠️ geckodriver no encontrado"
-          microsoft-edge --version
-          msedgedriver --version || echo "⚠️ msedgedriver no encontrado"
-
-      - name: Restore dependencies
-        run: dotnet restore SpecFlowSelenium.sln
-
-      - name: Build
-        run: dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
-
-      - name: Run cross-browser tests
-        run: dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+          dotnet restore SpecFlowSelenium.sln
+          dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
       - name: Publish test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults
+          name: TestResults-Multi
           path: '**/TestResults/*.trx'
