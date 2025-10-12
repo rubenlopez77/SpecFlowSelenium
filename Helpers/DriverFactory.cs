@@ -149,22 +149,35 @@ namespace SpecFlowSelenium.Helpers
 
         private IWebDriver CreateChrome(bool headless)
         {
-            var copts = new ChromeOptions();
+            var options = new ChromeOptions();
 
             if (headless)
-                copts.AddArgument("--headless=new");
+                options.AddArgument("--headless=new");
 
-            copts.AddArgument("--disable-gpu");
-            copts.AddArgument("--no-sandbox");
-            copts.AddArgument("--disable-dev-shm-usage");
-            copts.AddArgument("--remote-debugging-port=0");
-            copts.AddArgument($"--user-data-dir=/tmp/chrome-profile-{Guid.NewGuid()}");
+            // Evita usar perfil personalizado en CI: Chrome maneja su propio perfil aislado
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--disable-features=VizDisplayCompositor");
+            options.AddArgument("--disable-software-rasterizer");
+            options.AddArgument("--single-process");
+            options.AddArgument("--disable-extensions");
+            options.AddArgument("--remote-debugging-port=0");
 
+            // Aislamiento de red y sesiones
+            options.AddArgument("--incognito");
+
+            // Añadir flag para evitar advertencias sobre /dev/shm
+            options.AddExcludedArgument("enable-automation");
+
+            // Crear servicio sin definir puerto manualmente
             var service = ChromeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
 
-            return new ChromeDriver(service, copts, TimeSpan.FromSeconds(60));
+            // Timeout generoso para contenedores lentos
+            return new ChromeDriver(service, options, TimeSpan.FromSeconds(60));
         }
+
 
 
         public static IReadOnlyList<IWebDriver> GetScenarioDrivers(ScenarioContext? context = null)
