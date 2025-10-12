@@ -1,24 +1,29 @@
-﻿name: Dual-Mode Selenium Tests
+﻿name: Dual-Mode SpecFlow CI
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # ejecución manual
+  workflow_dispatch:
 
 jobs:
   # ==================================
-  # JOB AUTOMÁTICO: Parallel Scenarios (Chrome)
+  # 🧩 JOB AUTOMÁTICO: Parallel Scenarios (Chrome)
   # ==================================
   parallel_tests:
     name: 🧩 Parallel Scenarios (Chrome)
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch'
 
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome] # se puede ampliar a varios jobs si se desea
+
     env:
       EXECUTION_MODE: PARALLEL
-      BROWSERS: chrome
+      BROWSERS: ${{ matrix.browser }}
       HEADLESS: true
 
     steps:
@@ -30,31 +35,36 @@ jobs:
 
       - uses: browser-actions/setup-chrome@v1
 
-      - name: Build & Test (Parallel Mode)
+      - name: 🧱 Build & Test (${{ matrix.browser }})
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
-          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=${{ matrix.browser }}_results.trx"
 
-      - name: Publish Test Results
+      - name: 📦 Upload Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults-Parallel
+          name: TestResults-${{ matrix.browser }}
           path: '**/TestResults/*.trx'
 
 
   # ==================================
-  # JOB MANUAL: Cross-Browser MultiDriver
+  # 🌐 JOB MANUAL: Cross-Browser MultiDriver
   # ==================================
   multi_tests:
     name: 🌐 Cross-Browser MultiDriver
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
 
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, edge]
+
     env:
       EXECUTION_MODE: MULTI
-      BROWSERS: chrome,firefox,edge
+      BROWSERS: ${{ matrix.browser }}
       HEADLESS: true
 
     steps:
@@ -68,15 +78,15 @@ jobs:
       - uses: browser-actions/setup-firefox@v1
       - uses: browser-actions/setup-edge@v1
 
-      - name: Build & Test (Multi-Browser)
+      - name: 🧱 Build & Test (${{ matrix.browser }})
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
-          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=${{ matrix.browser }}_multi.trx"
 
-      - name: Publish Test Results
+      - name: 📦 Upload Multi Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults-Multi
+          name: TestResults-Multi-${{ matrix.browser }}
           path: '**/TestResults/*.trx'

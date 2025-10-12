@@ -12,8 +12,9 @@ namespace SpecFlowSelenium.Helpers
     [Binding, Parallelizable(ParallelScope.Fixtures)]
     public class DriverFactory
     {
-        private static readonly ThreadLocal<IWebDriver> _currentDriver = new();
-        private static readonly ThreadLocal<string> _currentBrowser = new();
+
+        private static readonly ThreadLocal<IWebDriver?> _currentDriver = new();
+        private static readonly ThreadLocal<string?> _currentBrowser = new();
         private static readonly ThreadLocal<ScenarioContext?> _currentContext = new();
 
         public static IWebDriver CurrentDriver
@@ -111,7 +112,7 @@ namespace SpecFlowSelenium.Helpers
                     }
                 }
             }
-
+       
             _currentDriver.Value = null;
             _currentBrowser.Value = null;
             _currentContext.Value = null;
@@ -154,7 +155,6 @@ namespace SpecFlowSelenium.Helpers
             if (headless)
                 options.AddArgument("--headless=new");
 
-            // Evita usar perfil personalizado en CI: Chrome maneja su propio perfil aislado
             options.AddArgument("--disable-gpu");
             options.AddArgument("--no-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
@@ -163,22 +163,17 @@ namespace SpecFlowSelenium.Helpers
             options.AddArgument("--single-process");
             options.AddArgument("--disable-extensions");
             options.AddArgument("--remote-debugging-port=0");
-
-            // Aislamiento de red y sesiones
             options.AddArgument("--incognito");
 
-            // Añadir flag para evitar advertencias sobre /dev/shm
             options.AddExcludedArgument("enable-automation");
 
-            // Crear servicio sin definir puerto manualmente
             var service = ChromeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
 
-            // Timeout generoso para contenedores lentos
             return new ChromeDriver(service, options, TimeSpan.FromSeconds(60));
         }
 
-
+      
 
         public static IReadOnlyList<IWebDriver> GetScenarioDrivers(ScenarioContext? context = null)
         {
