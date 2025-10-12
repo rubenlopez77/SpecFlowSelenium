@@ -150,18 +150,22 @@ namespace SpecFlowSelenium.Helpers
         private IWebDriver CreateChrome(bool headless)
         {
             var copts = new ChromeOptions();
-            if (headless) copts.AddArgument("--headless=new");
+
+            if (headless)
+                copts.AddArgument("--headless=new");
+
             copts.AddArgument("--disable-gpu");
             copts.AddArgument("--no-sandbox");
             copts.AddArgument("--disable-dev-shm-usage");
-            copts.AddArgument($"--user-data-dir=/tmp/chrome-profile-{Guid.NewGuid()}");
             copts.AddArgument("--remote-debugging-port=0");
+            copts.AddArgument($"--user-data-dir=/tmp/chrome-profile-{Guid.NewGuid()}");
 
             var service = ChromeDriverService.CreateDefaultService();
-            service.Port = 0; 
-            return new ChromeDriver(service, copts);
+            service.HideCommandPromptWindow = true;
 
+            return new ChromeDriver(service, copts, TimeSpan.FromSeconds(60));
         }
+
 
         public static IReadOnlyList<IWebDriver> GetScenarioDrivers(ScenarioContext? context = null)
         {

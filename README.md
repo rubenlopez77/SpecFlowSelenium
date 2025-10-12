@@ -2,7 +2,6 @@
 
 ![Version Badge](https://img.shields.io/badge/version-v1.2.4-blue?style=for-the-badge)
 
-Current version: **v1.2.4**
 
 ---
 
@@ -137,6 +136,8 @@ Then I should see the dashboard
 
 > Este proyecto es una **PoC experimental** enfocada en paralelismo, rendimiento y compatibilidad multi-navegador.  
 > Puede servir como base para futuros frameworks BDD más avanzados en entornos CI/CD reales.
+
+Current version: **v1.2.4**
 
 ---
 
