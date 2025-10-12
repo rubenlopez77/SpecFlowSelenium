@@ -155,6 +155,10 @@ namespace SpecFlowSelenium.Helpers
             if (headless)
                 options.AddArgument("--headless=new");
 
+            // Perfil temporal único por ejecución
+            var tmpProfile = Path.Combine(Path.GetTempPath(), $"chrome_profile_{Guid.NewGuid()}");
+            options.AddArgument($"--user-data-dir={tmpProfile}");
+
             options.AddArgument("--disable-gpu");
             options.AddArgument("--no-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
@@ -164,16 +168,16 @@ namespace SpecFlowSelenium.Helpers
             options.AddArgument("--disable-extensions");
             options.AddArgument("--remote-debugging-port=0");
             options.AddArgument("--incognito");
-
             options.AddExcludedArgument("enable-automation");
 
             var service = ChromeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
 
-            return new ChromeDriver(service, options, TimeSpan.FromSeconds(60));
+            return new ChromeDriver(service, options, TimeSpan.FromSeconds(90));
         }
 
-      
+
+
 
         public static IReadOnlyList<IWebDriver> GetScenarioDrivers(ScenarioContext? context = null)
         {
