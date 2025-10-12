@@ -1,15 +1,34 @@
 ﻿
+using SpecFlowSelenium.Helpers;
+
 namespace SpecFlowLogin.Helpers.DebugTools
 {
-    static class Debug
+    public static class Debug
     {
-        //TODO: Implementar diferentes log levels (info, debug, none, etc.)
+        private static readonly object _lock = new();
+
+        /// <summary>
+        /// Mensajes de log con el formato:
+        /// [chrome][Thread 18][12:42:03] Mensaje
+        /// </summary>
         public static void Log(string message)
         {
-           // if (Environment.GetEnvironmentVariable("LOG_LEVEL") == "none")
-            //    return;
 
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread {System.Threading.Thread.CurrentThread.ManagedThreadId}] {message}");
+            // if (Environment.GetEnvironmentVariable("LOG_LEVEL") == "none")
+            //    return;
+            // TODO la loggica para diferentes niveles de log
+
+
+            // Prefijo navegador + hilo (de DriverFactory)
+            string threadInfo = DriverFactory.GetThreadLabel();
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+
+     
+            string formatted = $"{threadInfo}[{timestamp}] {message}";
+            lock (_lock)
+            {
+                Console.WriteLine(formatted);
+            }
         }
     }
 }

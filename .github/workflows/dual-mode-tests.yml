@@ -1,4 +1,4 @@
-﻿name: Dual-Mode Pipeline
+﻿name: Dual-Mode Selenium Tests
 
 on:
   push:
@@ -23,22 +23,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
       - uses: browser-actions/setup-chrome@v1
 
-      - name: Build and test
+      - name: Build & Test (Parallel Mode)
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
           dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
-      - name: Publish test results
+      - name: Publish Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults
+          name: TestResults-Parallel
           path: '**/TestResults/*.trx'
 
 
@@ -52,24 +54,27 @@ jobs:
 
     env:
       EXECUTION_MODE: MULTI
-      BROWSERS: chrome,firefox
+      BROWSERS: chrome,firefox,edge
       HEADLESS: true
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
       - uses: browser-actions/setup-chrome@v1
       - uses: browser-actions/setup-firefox@v1
+      - uses: browser-actions/setup-edge@v1
 
-      - name: Build and test (multi-browser)
+      - name: Build & Test (Multi-Browser)
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
           dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
 
-      - name: Publish test results
+      - name: Publish Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
