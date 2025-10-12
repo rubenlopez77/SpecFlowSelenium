@@ -124,7 +124,8 @@ Then I should see the dashboard
 
 ## 📈 Próximos pasos
 
-- [ ] Implementar patrón **Page Object** completo  
+- [ ] Solve ChromeDriver v133+ issue on CI (user data directory bug) 
+- [ ] [ ] Implementar patrón **Page Object** completo  
 - [ ] Mejorar sistema de logging (NLog / Serilog)  
 - [ ] Generar reportes visuales con **SpecFlow+ LivingDoc**  
 - [ ] Añadir **tags diferenciados** para smoke y regresión  
@@ -137,7 +138,13 @@ Then I should see the dashboard
 > Este proyecto es una **PoC experimental** enfocada en paralelismo, rendimiento y compatibilidad multi-navegador.  
 > Puede servir como base para futuros frameworks BDD más avanzados en entornos CI/CD reales.
 
-Current version: **v0.0.1**
+## Known Issue: Chrome “user data directory” Bug on CI
+
+---
+
+Recent versions of ChromeDriver (v133 and above) introduce a known issue that can cause
+session not created: user data directory is already in use when running tests on CI environments
+such as GitHub Actions, even if each test uses its own profile directory.
 
 ---
 
