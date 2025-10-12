@@ -155,19 +155,26 @@ namespace SpecFlowSelenium.Helpers
             if (headless)
                 options.AddArgument("--headless=new");
 
-            // Perfil temporal único por ejecución
-            var tmpProfile = Path.Combine(Path.GetTempPath(), $"chrome_profile_{Guid.NewGuid()}");
+            // Crear perfil temporal realmente aislado
+            var tmpProfile = Path.Combine("/tmp", $"chrome_profile_{Guid.NewGuid()}");
+            Directory.CreateDirectory(tmpProfile);
             options.AddArgument($"--user-data-dir={tmpProfile}");
 
-            options.AddArgument("--disable-gpu");
+            // Flags necesarios para entornos CI (evitan el error de sandbox)
             options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-setuid-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--disable-extensions");
+            options.AddArgument("--disable-sync");
+            options.AddArgument("--disable-background-networking");
             options.AddArgument("--disable-features=VizDisplayCompositor");
             options.AddArgument("--disable-software-rasterizer");
-            options.AddArgument("--single-process");
-            options.AddArgument("--disable-extensions");
+            options.AddArgument("--disable-infobars");
+            options.AddArgument("--disable-application-cache");
             options.AddArgument("--remote-debugging-port=0");
             options.AddArgument("--incognito");
+            options.AddArgument("--no-first-run");
             options.AddExcludedArgument("enable-automation");
 
             var service = ChromeDriverService.CreateDefaultService();
@@ -175,7 +182,6 @@ namespace SpecFlowSelenium.Helpers
 
             return new ChromeDriver(service, options, TimeSpan.FromSeconds(90));
         }
-
 
 
 
