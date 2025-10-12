@@ -1,6 +1,6 @@
 ﻿# SpecFlow Selenium Tests
 
-![Version Badge](https://img.shields.io/badge/version-v0.0.1-blue?style=for-the-badge)
+![Version Badge](https://img.shields.io/badge/version-v1.0.0-blue?style=for-the-badge)
 
 
 ---
@@ -138,13 +138,7 @@ Then I should see the dashboard
 > Este proyecto es una **PoC experimental** enfocada en paralelismo, rendimiento y compatibilidad multi-navegador.  
 > Puede servir como base para futuros frameworks BDD más avanzados en entornos CI/CD reales.
 
-## Known Issue: Chrome “user data directory” Bug on CI
-
----
-
-Recent versions of ChromeDriver (v133 and above) introduce a known issue that can cause
-session not created: user data directory is already in use when running tests on CI environments
-such as GitHub Actions, even if each test uses its own profile directory.
+Current version: **v0.0.1**
 
 ---
 
