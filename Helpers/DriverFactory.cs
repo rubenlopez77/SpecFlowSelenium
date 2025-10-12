@@ -152,34 +152,39 @@ namespace SpecFlowSelenium.Helpers
         {
             var options = new ChromeOptions();
 
-            if (headless)
-                options.AddArgument("--headless=new");
+       
+            var chromePath = Environment.GetEnvironmentVariable("CHROME_PATH");
+            if (!string.IsNullOrWhiteSpace(chromePath))
+                options.BinaryLocation = chromePath;
 
-            // Crear perfil temporal realmente aislado
-            var tmpProfile = Path.Combine("/tmp", $"chrome_profile_{Guid.NewGuid()}");
-            Directory.CreateDirectory(tmpProfile);
-            options.AddArgument($"--user-data-dir={tmpProfile}");
 
-            // Flags necesarios para entornos CI (evitan el error de sandbox)
+            if (headless) options.AddArgument("--headless=new");
+
+            // 3) Flags mínimos y seguros para CI (¡sin user-data-dir!)
             options.AddArgument("--no-sandbox");
-            options.AddArgument("--disable-setuid-sandbox");
             options.AddArgument("--disable-dev-shm-usage");
             options.AddArgument("--disable-gpu");
             options.AddArgument("--disable-extensions");
-            options.AddArgument("--disable-sync");
-            options.AddArgument("--disable-background-networking");
-            options.AddArgument("--disable-features=VizDisplayCompositor");
-            options.AddArgument("--disable-software-rasterizer");
-            options.AddArgument("--disable-infobars");
-            options.AddArgument("--disable-application-cache");
             options.AddArgument("--remote-debugging-port=0");
             options.AddArgument("--incognito");
             options.AddArgument("--no-first-run");
+            options.AddArgument("--no-default-browser-check");
             options.AddExcludedArgument("enable-automation");
 
-            var service = ChromeDriverService.CreateDefaultService();
+            // causan inestabilidad en contenedor!!
+            // --single-process
+            // --disable-features=VizDisplayCompositor
+            // --user-data-dir=...
+
+
+            var chromeDriverDir = Environment.GetEnvironmentVariable("CHROMEWEBDRIVER");
+            ChromeDriverService service = !string.IsNullOrWhiteSpace(chromeDriverDir)
+                ? ChromeDriverService.CreateDefaultService(chromeDriverDir)
+                : ChromeDriverService.CreateDefaultService();
+
             service.HideCommandPromptWindow = true;
 
+  
             return new ChromeDriver(service, options, TimeSpan.FromSeconds(90));
         }
 

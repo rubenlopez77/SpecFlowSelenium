@@ -15,17 +15,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # necesario para leer tags
 
-      - name: ⚙️ Setup Git
+      - name: Setup Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🔍 Determine version bump
+      - name:  Determine version bump
         id: bump
         run: |
           latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -52,7 +52,7 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           echo "bump_type=$bump_type" >> $GITHUB_OUTPUT
 
-      - name: 🏷️ Create or skip existing tag
+      - name: Create or skip existing tag
         run: |
           tag=${{ steps.bump.outputs.new_version }}
           if git rev-parse "$tag" >/dev/null 2>&1; then
@@ -60,17 +60,17 @@ jobs:
           else
             git tag "$tag"
             git push origin "$tag"
-            echo "✅ Tag $tag creado y enviado."
+            echo "Tag $tag creado y enviado."
           fi
 
-      - name: 🧾 Update VERSION file
+      - name: Update VERSION file
         run: |
           echo "${{ steps.bump.outputs.new_version }}" > VERSION
           git add VERSION
           git commit -m "chore(version): bump to ${{ steps.bump.outputs.new_version }}" || echo "Sin cambios que confirmar"
           git push origin main || echo "⚠️ No se pudo hacer push (quizás sin cambios nuevos)"
 
-      - name: 📝 Update README with version
+      - name: Update README with version
         run: |
           version="${{ steps.bump.outputs.new_version }}"
           badge="![Version Badge](https://img.shields.io/badge/version-${version}-blue?style=for-the-badge)"
@@ -92,8 +92,8 @@ jobs:
           git commit -m "docs(readme): update version to ${version}" || echo "Sin cambios que confirmar"
           git push origin main || echo "⚠️ No se pudo hacer push (quizás sin cambios nuevos)"
 
-      - name: 📊 Version summary
+      - name: Version summary
         run: |
-          echo "Version bump complete ✅"
+          echo "Version bump complete "
           echo "Type: ${{ steps.bump.outputs.bump_type }}"
           echo "Tag: ${{ steps.bump.outputs.new_version }}"

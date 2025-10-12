@@ -35,13 +35,13 @@ jobs:
 
       - uses: browser-actions/setup-chrome@v1
 
-      - name: 🧱 Build & Test (${{ matrix.browser }})
+      - name: Build & Test (${{ matrix.browser }})
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
           dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=${{ matrix.browser }}_results.trx"
 
-      - name: 📦 Upload Results
+      - name: Upload Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -78,13 +78,13 @@ jobs:
       - uses: browser-actions/setup-firefox@v1
       - uses: browser-actions/setup-edge@v1
 
-      - name: 🧱 Build & Test (${{ matrix.browser }})
+      - name: Build & Test (${{ matrix.browser }})
         run: |
           dotnet restore SpecFlowSelenium.sln
           dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
           dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=${{ matrix.browser }}_multi.trx"
 
-      - name: 📦 Upload Multi Results
+      - name: Upload Multi Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
