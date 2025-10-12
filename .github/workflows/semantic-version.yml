@@ -19,74 +19,65 @@ jobs:
         with:
           fetch-depth: 0  # Necesario para leer tags y commits previos
 
-      - name: Setup Git
+      - name: ⚙️ Setup Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Determine version bump
+      - name: 🔍 Determine version bump
         id: bump
         run: |
+          # Obtener el último tag
           latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Última versión: $latest"
 
+          # Extraer versión numérica
           major=$(echo $latest | cut -d. -f1 | tr -d v)
           minor=$(echo $latest | cut -d. -f2)
           patch=$(echo $latest | cut -d. -f3)
 
+          # Detectar el tipo de cambio desde el último commit
           commit_msg=$(git log -1 --pretty=%s)
           echo "Último commit: $commit_msg"
 
           if [[ "$commit_msg" == *"BREAKING CHANGE"* ]] || [[ "$commit_msg" == feat!* ]]; then
-            major=$((major + 1)); minor=0; patch=0; bump_type="major"
+            major=$((major + 1))
+            minor=0
+            patch=0
+            bump_type="major"
           elif [[ "$commit_msg" == feat* ]]; then
-            minor=$((minor + 1)); patch=0; bump_type="minor"
+            minor=$((minor + 1))
+            patch=0
+            bump_type="minor"
           else
-            patch=$((patch + 1)); bump_type="patch"
+            patch=$((patch + 1))
+            bump_type="patch"
           fi
 
           new_version="v${major}.${minor}.${patch}"
-          echo "Nueva versión: $new_version ($bump_type)"
+
+          echo "Nueva versión detectada: $new_version ($bump_type)"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           echo "bump_type=$bump_type" >> $GITHUB_OUTPUT
 
-      - name: Create and push tag
+      # 🏷️ Bloque mejorado: no rompe si el tag ya existe
+      - name: 🏷️ Create and push tag (smart)
         run: |
-          git tag ${{ steps.bump.outputs.new_version }}
-          git push origin ${{ steps.bump.outputs.new_version }}
+          new_tag=${{ steps.bump.outputs.new_version }}
 
-      - name: Update VERSION file
+          if git ls-remote --tags origin | grep -q "refs/tags/$new_tag$"; then
+            echo "⚠️ Tag $new_tag ya existe en remoto, saltando creación..."
+          else
+            echo "🏷️ Creando nuevo tag: $new_tag"
+            git tag "$new_tag"
+            git push origin "$new_tag"
+          fi
+
+      - name: 📦 Update VERSION file
         run: |
           echo "${{ steps.bump.outputs.new_version }}" > VERSION
           git add VERSION
           git commit -m "chore(version): bump to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
           git push origin main
 
-      - name: Update README with version badge
-        run: |
-          badge_url="https://img.shields.io/badge/version-${{ steps.bump.outputs.new_version }}-blue?style=for-the-badge"
-          badge_md="![Version Badge](${badge_url})"
-
-          # Actualiza badge o añade si no existe
-          if grep -q "![Version Badge]" README.md; then
-            sed -i "s|!\[Version Badge\].*|${badge_md}|" README.md
-          else
-            echo -e "\n\n${badge_md}" >> README.md
-          fi
-
-          # Actualiza la línea "Current version:" si existe
-          if grep -q "Current version:" README.md; then
-            sed -i "s/^Current version:.*/Current version: **${{ steps.bump.outputs.new_version }}**/" README.md
-          else
-            echo -e "\nCurrent version: **${{ steps.bump.outputs.new_version }}**" >> README.md
-          fi
-
-          git add README.md
-          git commit -m "docs(readme): update version to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
-          git push origin main
-
-      - name: Display version summary
-        run: |
-          echo "Version bump completed"
-          echo "Type: ${{ steps.bump.outputs.bump_type }}"
-          echo "Tag: ${{ steps.bump.outputs.new_version }}"
+      - name: 🧾 Update README with version badg

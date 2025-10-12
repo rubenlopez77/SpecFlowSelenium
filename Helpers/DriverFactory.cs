@@ -154,7 +154,13 @@ namespace SpecFlowSelenium.Helpers
             copts.AddArgument("--disable-gpu");
             copts.AddArgument("--no-sandbox");
             copts.AddArgument("--disable-dev-shm-usage");
-            return new ChromeDriver(copts);
+            copts.AddArgument($"--user-data-dir=/tmp/chrome-profile-{Guid.NewGuid()}");
+            copts.AddArgument("--remote-debugging-port=0");
+
+            var service = ChromeDriverService.CreateDefaultService();
+            service.Port = 0; 
+            return new ChromeDriver(service, copts);
+
         }
 
         public static IReadOnlyList<IWebDriver> GetScenarioDrivers(ScenarioContext? context = null)
