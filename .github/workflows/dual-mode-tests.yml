@@ -1,0 +1,92 @@
+﻿name: Dual-Mode SpecFlow CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Execution mode"
+        required: true
+        default: "PARALLEL"
+        type: choice
+        options:
+          - PARALLEL
+          - MULTI
+
+jobs:
+  # ==================================
+  # 🧩 JOB AUTOMÁTICO o MANUAL: Parallel Scenarios (Chrome)
+  # ==================================
+  parallel_tests:
+    name: 🧩 Parallel Scenarios (Chrome)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'PARALLEL'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome]
+
+    env:
+      EXECUTION_MODE: PARALLEL
+      BROWSERS: ${{ matrix.browser }}
+      HEADLESS: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: browser-actions/setup-chrome@v1
+
+      - name: Build & Test (${{ matrix.browser }})
+        run: |
+          dotnet restore SpecFlowSelenium.sln
+          dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=${{ matrix.browser }}_results.trx"
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults-${{ matrix.browser }}
+          path: '**/TestResults/*.trx'
+
+
+  # ==================================
+  # 🌐 JOB MANUAL: Cross-Browser MultiDriver
+  # ==================================
+  multi_tests:
+    name: 🌐 Cross-Browser MultiDriver
+    runs-on: ubuntu-latest
+    if: github.event.inputs.mode == 'MULTI'
+
+    env:
+      EXECUTION_MODE: MULTI
+      BROWSERS: chrome,firefox,edge
+      HEADLESS: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-firefox@v1
+      - uses: browser-actions/setup-edge@v1
+
+      - name: Build & Test (multi-browser)
+        run: |
+          dotnet restore SpecFlowSelenium.sln
+          dotnet build SpecFlowSelenium.sln --configuration Release --no-restore
+          dotnet test SpecFlowSelenium.sln --configuration Release --no-build --logger "trx;LogFileName=multi_results.trx"
+
+      - name: Upload Multi Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults-Multi
+          path: '**/TestResults/*.trx'

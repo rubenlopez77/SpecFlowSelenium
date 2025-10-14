@@ -1,0 +1,99 @@
+﻿name: Semantic Versioning & README Update
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  versioning:
+    name: Smart Semantic Versioning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # necesario para leer tags
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name:  Determine version bump
+        id: bump
+        run: |
+          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Última versión: $latest"
+
+          major=$(echo $latest | cut -d. -f1 | tr -d v)
+          minor=$(echo $latest | cut -d. -f2)
+          patch=$(echo $latest | cut -d. -f3)
+          commit_msg=$(git log -1 --pretty=%s)
+
+          echo "Último commit: $commit_msg"
+
+          if [[ "$commit_msg" == *"BREAKING CHANGE"* ]] || [[ "$commit_msg" == feat!\(* ]]; then
+            major=$((major + 1)); minor=0; patch=0; bump_type="major"
+          elif [[ "$commit_msg" == feat* ]]; then
+            minor=$((minor + 1)); patch=0; bump_type="minor"
+          else
+            patch=$((patch + 1)); bump_type="patch"
+          fi
+
+          new_version="v${major}.${minor}.${patch}"
+          echo "Nueva versión detectada: $new_version ($bump_type)"
+
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "bump_type=$bump_type" >> $GITHUB_OUTPUT
+
+      - name: Create or skip existing tag
+        run: |
+          tag=${{ steps.bump.outputs.new_version }}
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "⚠️ Tag $tag ya existe, se omitirá la creación."
+          else
+            git tag "$tag"
+            git push origin "$tag"
+            echo "Tag $tag creado y enviado."
+          fi
+
+      - name: Update VERSION file
+        run: |
+          echo "${{ steps.bump.outputs.new_version }}" > VERSION
+          git add VERSION
+          git commit -m "chore(version): bump to ${{ steps.bump.outputs.new_version }}" || echo "Sin cambios que confirmar"
+          git push origin main || echo "⚠️ No se pudo hacer push (quizás sin cambios nuevos)"
+
+      - name: Update README with version
+        run: |
+          version="${{ steps.bump.outputs.new_version }}"
+          badge="![Version Badge](https://img.shields.io/badge/version-${version}-blue?style=for-the-badge)"
+
+          if grep -q "Current version:" README.md; then
+            sed -i "s/^Current version:.*/Current version: **${version}**/" README.md
+          else
+            echo -e "\n\nCurrent version: **${version}**" >> README.md
+          fi
+
+          # Actualiza badge si existe
+          if grep -q "Version Badge" README.md; then
+            sed -i "s|https://img.shields.io/badge/version-.*-blue?style=for-the-badge|https://img.shields.io/badge/version-${version}-blue?style=for-the-badge|" README.md
+          else
+            echo -e "\n${badge}\n" >> README.md
+          fi
+
+          git add README.md
+          git commit -m "docs(readme): update version to ${version}" || echo "Sin cambios que confirmar"
+          git push origin main || echo "⚠️ No se pudo hacer push (quizás sin cambios nuevos)"
+
+      - name: Version summary
+        run: |
+          echo "Version bump complete "
+          echo "Type: ${{ steps.bump.outputs.bump_type }}"
+          echo "Tag: ${{ steps.bump.outputs.new_version }}"

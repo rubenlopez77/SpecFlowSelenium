@@ -1,0 +1,41 @@
+﻿name: Cross-Browser Matrix
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: 🧩 Run E2E on ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        browser: [chrome, firefox, edge]
+
+    env:
+      BROWSER: ${{ matrix.browser }}
+      HEADLESS: true
+      EXECUTION_MODE: PARALLEL
+      BASE_URL: https://the-internet.herokuapp.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests on ${{ matrix.browser }}
+        run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=${{ matrix.browser }}.trx"
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.browser }}
+          path: '**/${{ matrix.browser }}.trx'
