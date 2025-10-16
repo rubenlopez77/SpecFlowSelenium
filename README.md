@@ -51,17 +51,31 @@ SpecFlowSelenium/
 
 ---
 
+## 🔧 Modos de ejecución (`EXECUTION_MODE`)
+
+La variable de entorno `EXECUTION_MODE` controla cómo se ejecutan los navegadores en las pruebas.  
+Existen tres modos disponibles:
+
+| Modo | Descripción | Uso típico | Consumo de recursos | Riesgo de conflicto |
+|------|--------------|------------|---------------------|--------------------|
+| **PARALLEL** | Todos los navegadores a la vez (threads distintos) | Stress testing, validación simultánea, benchmarking | Alto | Mayor (acciones simultáneas, logs mezclados) |
+| **MULTI** | Navegadores uno tras otro (mismo hilo) | Validación cruzada, depuración, CI estable | Medio | Casi nulo |
+| **SINGLE (por omisión)** | Un solo navegador | Tests normales, desarrollo local | Bajo | Ninguno |
+
+
 ## 🧠 Arquitectura técnica
 
-El sistema utiliza un modelo híbrido:
+El sistema utiliza un modelo híbrido y escalable que soporta ejecución **multi-navegador** y **multihilo**, adaptándose automáticamente según el modo definido por `EXECUTION_MODE`.
 
 | Elemento | Descripción |
 |-----------|--------------|
-| **DriverFactory** | Crea y gestiona instancias `IWebDriver` aisladas por hilo o escenario. |
-| **ThreadLocal** | Aísla contexto de Selenium y ScenarioContext por hilo. |
-| **EXECUTION_MODE** | Controla el comportamiento (`PARALLEL` o `MULTI`). |
-| **Page Objects** | Encapsulan la lógica de interacción con la UI. |
-| **Debug.Log** | Muestra `[browser][Thread][HH:mm:ss]` en consola, thread-safe. |
+| **DriverFactory** | Crea y gestiona instancias independientes de `IWebDriver` por navegador y escenario. Soporta ejecución **paralela real (multithread)** o **secuencial** según configuración. |
+| **ThreadLocal** | Aísla los contextos de `IWebDriver`, `ScenarioContext` y metadatos del navegador por hilo, garantizando independencia total en `PARALLEL`. |
+| **EXECUTION_MODE** | Controla el comportamiento de ejecución: `PARALLEL` (varios navegadores en hilos distintos), `MULTI` (uno tras otro en el mismo hilo) o `SINGLE` (un solo navegador por defecto). |
+| **Page Objects** | Encapsulan la lógica de interacción con la interfaz de usuario, manteniendo el código de los steps limpio y reutilizable. |
+| **ConcurrentBag / Parallel.ForEach** | Permiten crear y cerrar múltiples instancias de navegador simultáneamente, sin bloqueos ni condiciones de carrera. |
+| **Debug.Log** | Emite trazas detalladas `[browser][Thread][HH:mm:ss]` en consola. El logger es thread-safe y facilita la depuración en escenarios concurrentes. |
+
 
 ---
 
@@ -106,23 +120,31 @@ El pipeline **`.github/workflows/semantic-version.yml`** gestiona versiones sigu
 ## 🧩 Ejemplo de ejecución (Parallel)
 
 ```
-[unknown][Thread 15][10:45:45] [LOCAL MODE] Navegadores detectados: chrome, firefox, edge
-[unknown][Thread 15][10:45:45] Escenario: 'Successful login'  |  EXECUTION_MODE=PARALLEL  |  headless=False
-[chrome][Thread 15][10:45:46] [chrome][Thread 15] Driver iniciado (headless=False)
-[firefox][Thread 15][10:45:51] [firefox][Thread 15] Driver iniciado (headless=False)
-[edge][Thread 15][10:45:53] [edge][Thread 15] Driver iniciado (headless=False)
-[chrome][Thread 15][10:45:53]  Driver inicializado para 'chrome' (headless=False)
+[unknown][Thread 18][12:21:38] [LOCAL MODE] Navegadores detectados: chrome, firefox, edge
+[unknown][Thread 18][12:21:38] Escenario: 'Successful login' | EXECUTION_MODE=PARALLEL | headless=False
+[unknown][Thread 18][12:21:38] [PARALLEL MODE] Creando drivers en paralelo: chrome, firefox, edge
+
+[chrome][Thread 32][12:21:39] Driver iniciado (headless=False)
+[edge][Thread 28][12:21:39] Driver iniciado (headless=False)
+[firefox][Thread 26][12:21:44] Driver iniciado (headless=False)
+
+[chrome][Thread 18][12:21:44] Driver inicializado para 'chrome' (headless=False)
+
 Given I am on the login page
--> done: LoginSteps.GivenIAmOnLoginPage() (6,8s)
+-> done: LoginSteps.GivenIAmOnLoginPage() (3,9s)
+
 When I enter valid credentials
--> done: LoginSteps.WhenIEnterValidCredentials() (0,9s)
+-> done: LoginSteps.WhenIEnterValidCredentials() (1,2s)
+
 And I click the login button
 -> done: LoginSteps.WhenIClickLoginButton() (0,0s)
+
 Then I should see the dashboard
 -> done: LoginSteps.ThenIShouldSeeTheDashboard() (0,0s)
-[chrome][Thread 15][10:46:00] [chrome][Thread 15] Cerrando navegador...
-[chrome][Thread 15][10:46:00] [chrome][Thread 15] Cerrando navegador...
-[chrome][Thread 15][10:46:01] [chrome][Thread 15] Cerrando navegador...
+
+[chrome][Thread 18][12:21:49] Cerrando navegador...
+[edge][Thread 28][12:21:49] Cerrando navegador...
+[firefox][Thread 26][12:21:49] Cerrando navegador...
 
 ```
 

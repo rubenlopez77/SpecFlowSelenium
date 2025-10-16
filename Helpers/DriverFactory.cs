@@ -1,11 +1,20 @@
-﻿using TechTalk.SpecFlow;
+﻿using NUnit.Framework;
+
+
+
+using TechTalk.SpecFlow;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Edge;
 using DotNetEnv;
-using NUnit.Framework;
+
 using SpecFlowLogin.Helpers.DebugTools;
+
+
+// 🔹 Atributos de configuración global de NUnit
+[assembly: Parallelizable(ParallelScope.Fixtures)]
+[assembly: LevelOfParallelism(6)]
 
 namespace SpecFlowSelenium.Helpers
 {
@@ -65,21 +74,51 @@ namespace SpecFlowSelenium.Helpers
 
             Debug.Log($"Escenario: '{context.ScenarioInfo.Title}'  |  EXECUTION_MODE={execMode}  |  headless={headless}");
 
-            // 2️⃣ Crear drivers (solo uno en matrix)
+            // 2️⃣ Crear drivers según modo de ejecución
             var drivers = new List<IWebDriver>();
 
-            foreach (var browser in browsers)
+            if (execMode == "PARALLEL")
             {
-                var driver = CreateDriver(browser, headless);
-                drivers.Add(driver);
+                Debug.Log($"[PARALLEL MODE] Creando drivers en paralelo: {string.Join(", ", browsers)}");
+
+                // 🔹 Lanza la creación de cada driver en su propio hilo
+                var driverTasks = browsers.Select(browser =>
+                    Task.Run(() =>
+                    {
+                        var driver = CreateDriver(browser, headless);
+                        lock (drivers)
+                        {
+                            drivers.Add(driver);
+                        }
+                        Debug.Log($"[{browser}][Thread {Thread.CurrentThread.ManagedThreadId}] Driver iniciado (headless={headless})");
+                        return driver;
+                    })
+                );
+
+                // 🔹 Espera a que todos terminen
+                Task.WhenAll(driverTasks).GetAwaiter().GetResult();
+            }
+            else
+            {
+                Debug.Log($"[{execMode} MODE] Creando drivers en secuencia: {string.Join(", ", browsers)}");
+
+                // 🔹 Secuencial (modo MULTI o SINGLE)
+                foreach (var browser in browsers)
+                {
+                    var driver = CreateDriver(browser, headless);
+                    drivers.Add(driver);
+                    Debug.Log($"[{browser}][Thread {Thread.CurrentThread.ManagedThreadId}] Driver iniciado (headless={headless})");
+                }
             }
 
+            // Guardar drivers en el contexto del escenario
             context["drivers"] = drivers;
             _currentDriver.Value = drivers.First();
             _currentBrowser.Value = browsers.First();
 
             Debug.Log($"Driver inicializado para '{_currentBrowser.Value}' (headless={headless})");
         }
+
 
         [AfterScenario(Order = 0)]
         public void AfterScenario()
