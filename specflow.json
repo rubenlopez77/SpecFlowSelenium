@@ -1,12 +1,17 @@
 {
     "specFlow": {
+        "unitTestProvider": { "name": "NUnit" },
         "runtime": {
-            "executionThreadIsolation": "SameThread",
+            "executionThreadIsolation": "SeparateThread",
             "testThreadIsolation": "Thread",
             "stopAtFirstError": false
         },
-        "generator": {
-            "allowDebugGeneratedFiles": true
-        }
+        "plugins": [
+            {
+                "name": "Allure.SpecFlow",
+                "type": "GeneratorAndRuntime"
+            }
+        ],
+        "generator": { "allowDebugGeneratedFiles": true }
     }
 }

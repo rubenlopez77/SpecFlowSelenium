@@ -17,22 +17,18 @@
     <Compile Remove="SetUpFixture.cs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DotNetEnv" Version="3.1.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="MSTest" Version="3.6.4" />
-    <PackageReference Include="NUnit" Version="4.4.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
-    <PackageReference Include="Selenium.WebDriver" Version="4.36.0" />
-    <PackageReference Include="SpecFlow" Version="3.9.74" />
-    <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
-    <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
-  </ItemGroup>
+<ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  <PackageReference Include="DotNetEnv" Version="3.1.1" />
+  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+  <PackageReference Include="NUnit" Version="3.13.3" />
+  <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+  <PackageReference Include="Selenium.WebDriver" Version="4.36.0" />
+  <PackageReference Include="SpecFlow" Version="3.9.74" />
+  <PackageReference Include="SpecFlow.NUnit" Version="3.9.74" />
+  <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
+</ItemGroup>
 
-  </ItemGroup>
 
   <ItemGroup>
     <None Update=".env">
@@ -46,6 +42,11 @@
     <None Include=".github\workflows\ci.yml" />
     <None Include=".github\workflows\semantic-version.yml" />
   </ItemGroup>
+
+  <ItemGroup>
+  <None Include="specflow.json" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
 
   <ItemGroup>
     <Folder Include="docs\" />

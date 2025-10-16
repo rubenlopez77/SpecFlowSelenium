@@ -1,11 +1,14 @@
-﻿using SpecFlowSelenium.Helpers;
+﻿using NUnit.Framework;
+using SpecFlowSelenium.Helpers;
 using SpecFlowSelenium.Pages;
 using TechTalk.SpecFlow;
+
 using static NUnit.Framework.Assert;
 
 namespace SpecFlowSelenium.Steps
 {
     [Binding]
+
     public class LoginSteps
     {
         private readonly HomePage _home;
