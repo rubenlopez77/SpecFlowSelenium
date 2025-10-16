@@ -3,8 +3,9 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:  # 
+
 
 jobs:
   build:
@@ -42,6 +43,6 @@ jobs:
       - name: Build and analyze
         shell: powershell
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"rubenlopez77_Selenium.TestSuite_4c33bc69-79a8-49d8-bbe4-38234e4472f3" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"rubenlopez77_SpecFlowSelenium_79364437-d428-4e03-9f09-a5c2b3473939" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}"
           dotnet build
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
