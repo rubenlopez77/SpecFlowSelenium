@@ -39,7 +39,7 @@
   <ItemGroup>
     <None Include=".azure\local-pipeline.yml" />
     <None Include=".azure\azure-pipelines.yml" />
-    <None Include=".github\workflows\ci.yml" />
+    <None Include=".github\workflows\dual-mode-tests.yml" />
     <None Include=".github\workflows\semantic-version.yml" />
   </ItemGroup>
 

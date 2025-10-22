@@ -1,6 +1,5 @@
 ﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
-using System;
 
 namespace SpecFlowSelenium.Helpers
 {
@@ -84,6 +83,8 @@ namespace SpecFlowSelenium.Helpers
                     return false;
                 }
             });
+
+
         }
     }
 }

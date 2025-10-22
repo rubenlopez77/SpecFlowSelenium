@@ -7,11 +7,10 @@ namespace SpecFlowSelenium.Pages
     {
         private readonly List<IWebDriver> _drivers;
 
-        public HomePage()
-        {
-            _drivers = DriverFactory.GetScenarioDrivers().ToList();
-        }
+        public HomePage() => _drivers = DriverFactory.GetScenarioDrivers().ToList();
 
+
+       
         public HomePage Navigate()
         {
             var baseUrl = (Environment.GetEnvironmentVariable("BASE_URL") ?? "").TrimEnd('/');

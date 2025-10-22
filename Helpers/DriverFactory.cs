@@ -44,27 +44,28 @@ namespace SpecFlowSelenium.Helpers
         public void BeforeScenario()
         {
             var context = _currentContext.Value ?? throw new InvalidOperationException("ScenarioContext no disponible en BeforeScenario");
+        
+        // 1️Detectar modo pipeline matrix
+        string? singleBrowser = Environment.GetEnvironmentVariable("BROWSER");
+        string[] browsers;
 
-            // 1️⃣ Detectar modo pipeline matrix
-            string? singleBrowser = Environment.GetEnvironmentVariable("BROWSER");
-            string[] browsers = Array.Empty<string>();
+        if (!string.IsNullOrWhiteSpace(singleBrowser))
+        {
+            // CI: ejecutando un solo navegador (matrix)
+            browsers = new[] { singleBrowser.Trim().ToLowerInvariant() };
+            Debug.Log($"[CI MODE] Ejecutando solo en navegador: {browsers[0]}");
+        }
+        else
+        {
+            // Local / manual: varios navegadores definidos
+            var browsersEnv = Environment.GetEnvironmentVariable("BROWSERS") ?? "chrome";
+            browsers = browsersEnv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(b => b.ToLowerInvariant())
+                .ToArray();
+            Debug.Log($"[LOCAL MODE] Navegadores detectados: {string.Join(", ", browsers)}");
+        }
 
-            if (!string.IsNullOrWhiteSpace(singleBrowser))
-            {
-                // CI: ejecutando un solo navegador (matrix)
-                browsers = new[] { singleBrowser.Trim().ToLowerInvariant() };
-                Debug.Log($"[CI MODE] Ejecutando solo en navegador: {browsers[0]}");
-            }
-            else
-            {
-                // Local / manual: varios navegadores definidos
-                var browsersEnv = Environment.GetEnvironmentVariable("BROWSERS") ?? "chrome";
-                browsers = browsersEnv
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(b => b.ToLowerInvariant())
-                    .ToArray();
-                Debug.Log($"[LOCAL MODE] Navegadores detectados: {string.Join(", ", browsers)}");
-            }
 
             bool headless = (Environment.GetEnvironmentVariable("HEADLESS") ?? "true")
                 .Trim().ToLowerInvariant() == "true";
