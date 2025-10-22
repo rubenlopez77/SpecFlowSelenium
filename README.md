@@ -13,23 +13,34 @@
 
 ---
 
-⚠️ Automated UI testing with SpecFlow + Selenium + .NET **Prueba de concepto (PoC)** — Este proyecto es **experimental** y se utiliza únicamente para demostrar las capacidades de **SpecFlow + Selenium** en escenarios de ejecución **paralela** y **multi-navegador**.  
-Su propósito es probar la **robustez**, el **aislamiento de contextos** y la **eficiencia en pipelines CI/CD**.  
+⚠️ Prueba de concepto (PoC) — Este proyecto es **experimental** y se utiliza únicamente para demostrar las capacidades de **SpecFlow + Selenium** en escenarios de ejecución paralela y multi-navegador.
+Su propósito es probar la robustez, el aislamiento de contextos y la eficacia de una arquitectura de pruebas escalable.
 No está destinado a entornos productivos.
 
 ---
 
 ## 🚀 Objetivo
 
-Demostrar cómo implementar pruebas automatizadas **BDD (Behavior Driven Development)** con:
+Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Development) con una arquitectura sólida y mantenible:
 
-- ✅ BDD: Escenarios escritos en **Gherkin (.feature)**  
-- ✅ Definiciones de pasos en **C# (SpecFlow Steps)**  
-- ✅ Ejecución en paralelo con **NUnit [ParallelScope.Fixtures]**  
-- ✅ Pruebas **cross-browser simultáneas** con arquitectura MultiDriver  
-- ✅ Integración con **Selenium WebDriver** para interacción real con el navegador  
-- ✅ **Helpers y Page Objects** reutilizables para reducir duplicación  
-- ✅ **Estrategia de tags**: diferenciar *Smoke* y *Regresión* (velocidad vs cobertura)
+✅ BDD: Escenarios escritos en Gherkin (.feature)
+✅ Definiciones de pasos en C# (SpecFlow Steps)
+✅ Ejecución en paralelo con NUnit [ParallelScope.Fixtures]
+✅ Pruebas cross-browser simultáneas con arquitectura MultiDriver
+✅ Integración con Selenium WebDriver para interacción real con el navegador
+✅ Page Object Model (POM) implementado con Fluent Interface para una lectura más expresiva y encadenamiento fluido de acciones
+✅ Arquitectura por capas (Feature → Step Definitions → Page Objects → Core Utilities) que incrementa la cobertura, reduce la duplicación y disminuye los costes de mantenimiento
+✅ Estrategia de tags: diferenciación de Smoke y Regresión para equilibrar velocidad y cobertura
+
+---
+
+📈 Beneficios clave
+
+🔹 Separación clara de responsabilidades
+🔹 Alta reutilización de componentes
+🔹 Mayor cobertura con menor mantenimiento
+🔹 Capacidad para ejecución paralela y cross-browser
+🔹 Fácil integración con pipelines CI/CD
 
 ---
 
