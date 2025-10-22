@@ -20,18 +20,19 @@ No está destinado a entornos productivos.
 
 ## 🚀 Objetivo
 
-Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Development) con una arquitectura sólida y mantenible:
+Demostrar cómo implementar pruebas automatizadas **BDD (Behavior Driven Development)** con una arquitectura sólida y mantenible:
 
-✅ BDD: Escenarios escritos en Gherkin (.feature)
-✅ Definiciones de pasos en C# (SpecFlow Steps)
-✅ Ejecución en paralelo con NUnit [ParallelScope.Fixtures]
-✅ Pruebas cross-browser simultáneas con arquitectura MultiDriver
-✅ Integración con Selenium WebDriver para interacción real con el navegador
-✅ Page Object Model (POM) implementado con Fluent Interface para una lectura más expresiva y encadenamiento fluido de acciones
-✅ Arquitectura por capas (Feature → Step Definitions → Page Objects → Core Utilities) que incrementa la cobertura, reduce la duplicación y disminuye los costes de mantenimiento
-✅ Estrategia de tags: diferenciación de Smoke y Regresión para equilibrar velocidad y cobertura
+- ✅ **BDD:** Escenarios escritos en **Gherkin (.feature)**
+- ✅ **Definiciones de pasos** en **C# (SpecFlow Steps)**
+- ✅ Ejecución **en paralelo** con **NUnit** (`[ParallelScope.Fixtures]`)
+- ✅ Pruebas **cross-browser simultáneas** con arquitectura **MultiDriver**
+- ✅ Integración con **Selenium WebDriver** para interacción real con el navegador
+- ✅ **Page Object Model (POM)** con **Fluent Interface** para lectura expresiva y encadenamiento fluido de acciones
+- ✅ **Arquitectura por capas** (*Feature → Step Definitions → Page Objects → Core Utilities*) que **incrementa la cobertura** y **reduce los costes de mantenimiento**
+- ✅ **Helpers y Page Objects** reutilizables para reducir duplicación
+- ✅ **Estrategia de tags:** diferenciar **Smoke** y **Regresión** (velocidad vs cobertura)
 
----
+------
 
 📈 Beneficios clave
 
