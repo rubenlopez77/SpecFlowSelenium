@@ -42,7 +42,7 @@ Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Developme
 🔹 Capacidad para ejecución paralela y cross-browser
 🔹 Fácil integración con pipelines CI/CD
 
----
+------
 
 ## 🧩 Estructura del proyecto
 
@@ -68,7 +68,17 @@ SpecFlowSelenium/
     └── semantic-version.yml   # Versionado automático + badge README
 ```
 
----
+## 📈 Beneficios clave
+
+- Sintaxis legible y expresiva 
+- Separación clara de responsabilidades
+- Alta reutilización de componentes
+- Mayor cobertura con menor mantenimiento
+- Ejecución en paralelo y cross-browser
+- Integración sencilla en pipelines **CI/CD**
+
+  
+------
 
 ## 🔧 Modos de ejecución (`EXECUTION_MODE`)
 
@@ -171,7 +181,8 @@ Then I should see the dashboard
 
 ## 📈 Próximos pasos
 
-- [ ] GitHub Actions: Solve ChromeDriver v133+ issue on CI (user data directory bug) 
+- [ ] GitHub Actions: Solve ChromeDriver v133+ issue on CI (user data directory bug)
+- [x] **SonarQube**: Quality Gate pasado ✅ (coverage & maintainability)
 - [ ] Mejorar sistema de logging (NLog / Serilog)  
 - [ ] Generar reportes visuales con **SpecFlow+ LivingDoc**  
 - [ ] Añadir **tags diferenciados** para smoke y regresión  
@@ -193,3 +204,4 @@ Current version: **v0.0.1**
 
 📘 Licencia: MIT © Rubén  
 _Contribuciones y forks bienvenidos mientras se mantenga el propósito experimental._
+
