@@ -291,3 +291,6 @@ jobs:
 🧑‍🔬 QA Senior 📦 [GitHub](https://github.com/rubenlopez77)🔗 [LinkedIn](https://www.linkedin.com/in/ruben-lopez-qa/)
 
 ---
+
+
+Current version: **v0.0.1**
