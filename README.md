@@ -4,32 +4,43 @@
 ![Version Badge](https://img.shields.io/badge/version-v0.0.1-blue?style=for-the-badge)
 
 
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rubenlopez77_SpecFlowSelenium&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rubenlopez77_SpecFlowSelenium)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=rubenlopez77_SpecFlowSelenium&metric=coverage)](https://sonarcloud.io/summary/new_code?id=rubenlopez77_SpecFlowSelenium)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=rubenlopez77_SpecFlowSelenium&metric=bugs)](https://sonarcloud.io/summary/new_code?id=rubenlopez77_SpecFlowSelenium)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=rubenlopez77_SpecFlowSelenium&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=rubenlopez77_SpecFlowSelenium)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=rubenlopez77_SpecFlowSelenium&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=rubenlopez77_SpecFlowSelenium)
 
-# ⚠️ Automated UI Testing with SpecFlow + Selenium + .NET
+---
 
-**Prueba de concepto (PoC)** — Este proyecto es **experimental** y se utiliza únicamente para demostrar las capacidades de **SpecFlow + Selenium** en escenarios de ejecución **paralela** y **multi-navegador**.  
-Su propósito es probar la **robustez**, el **aislamiento de contextos** y la eficacia de una **arquitectura de pruebas escalable**.  
+⚠️ Prueba de concepto (PoC) — Este proyecto es **experimental** y se utiliza únicamente para demostrar las capacidades de **SpecFlow + Selenium** en escenarios de ejecución paralela y multi-navegador.
+Su propósito es probar la robustez, el aislamiento de contextos y la eficacia de una arquitectura de pruebas escalable.
 No está destinado a entornos productivos.
 
 ---
 
 ## 🚀 Objetivo
 
-Demostrar cómo implementar pruebas automatizadas **BDD (Behavior Driven Development)** con una arquitectura sólida y mantenible:
+Demostrar cómo implementar pruebas automatizadas BDD (Behavior Driven Development) con una arquitectura sólida y mantenible:
 
-- ✅ **BDD:** Escenarios escritos en **Gherkin (.feature)**
-- ✅ **Definiciones de pasos** en **C# (SpecFlow Steps)**
-- ✅ Ejecución **en paralelo** con **NUnit** (`[ParallelScope.Fixtures]`)
-- ✅ Pruebas **cross-browser simultáneas** con arquitectura **MultiDriver**
-- ✅ Integración con **Selenium WebDriver** para interacción real con el navegador
-- ✅ **Page Object Model (POM)** con **Fluent Interface** para lectura expresiva y encadenamiento fluido de acciones
-- ✅ **Arquitectura por capas** (*Feature → Step Definitions → Page Objects → Core Utilities*) que **incrementa la cobertura** y **reduce los costes de mantenimiento**
-- ✅ **Helpers y Page Objects** reutilizables para reducir duplicación
-- ✅ **Estrategia de tags:** diferenciar **Smoke** y **Regresión** (velocidad vs cobertura)
+✅ BDD: Escenarios escritos en Gherkin (.feature)
+✅ Definiciones de pasos en C# (SpecFlow Steps)
+✅ Ejecución en paralelo con NUnit [ParallelScope.Fixtures]
+✅ Pruebas cross-browser simultáneas con arquitectura MultiDriver
+✅ Integración con Selenium WebDriver para interacción real con el navegador
+✅ Page Object Model (POM) implementado con Fluent Interface para una lectura más expresiva y encadenamiento fluido de acciones
+✅ Arquitectura por capas (Feature → Step Definitions → Page Objects → Core Utilities) que incrementa la cobertura, reduce la duplicación y disminuye los costes de mantenimiento
+✅ Estrategia de tags: diferenciación de Smoke y Regresión para equilibrar velocidad y cobertura
+
+---
+
+📈 Beneficios clave
+
+🔹 Separación clara de responsabilidades
+🔹 Alta reutilización de componentes
+🔹 Mayor cobertura con menor mantenimiento
+🔹 Capacidad para ejecución paralela y cross-browser
+🔹 Fácil integración con pipelines CI/CD
 
 ------
 
